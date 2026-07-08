@@ -3,9 +3,9 @@ spring:
     name: backend
 
   datasource:
-    url: jdbc:postgresql://localhost:5433/twogether_db
-    username: twogether
-    password: twogether
+    url: jdbc:postgresql://localhost:${POSTGRES_PORT:5433}/${POSTGRES_DB:twogether_db}
+    username: ${POSTGRES_USER:twogether}
+    password: ${POSTGRES_PASSWORD:twogether}
     driver-class-name: org.postgresql.Driver
 
   jpa:
