@@ -9,8 +9,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import com.twogether.backend.tag.dto.response.SkillTagResponse;
-
+import com.twogether.backend.tag.dto.request.HobbyTagUpdateRequest;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import java.util.List;
+import com.twogether.backend.tag.dto.request.SkillTagUpdateRequest;
 
 @Tag(
         name = "태그 API",
@@ -64,5 +67,31 @@ public class TagController {
                 );
 
         return ResponseEntity.ok(response);
+    }
+
+    @Operation(
+            summary = "내 취미 태그 수정",
+            description = "현재 사용자가 선택한 취미 태그 목록을 전체 교체합니다."
+    )
+    @PutMapping("/users/me/hobby-tags")
+    public ResponseEntity<ApiResponse<Void>> updateMyHobbyTags(
+            @RequestBody HobbyTagUpdateRequest request
+    ) {
+        return ResponseEntity.ok(
+                ApiResponse.success("취미 태그 수정에 성공했습니다.")
+        );
+    }
+
+    @Operation(
+            summary = "내 기술 태그 수정",
+            description = "현재 사용자가 선택한 기술 태그 목록을 전체 교체합니다."
+    )
+    @PutMapping("/users/me/skill-tags")
+    public ResponseEntity<ApiResponse<Void>> updateMySkillTags(
+            @RequestBody SkillTagUpdateRequest request
+    ) {
+        return ResponseEntity.ok(
+                ApiResponse.success("기술 태그 수정에 성공했습니다.")
+        );
     }
 }
