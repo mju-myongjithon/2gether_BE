@@ -61,6 +61,17 @@ public record MyProfileResponse(
 
         @Schema(
                 description = """
+                        현재 설정된 사용자 프로필 이미지 URL입니다.
+                        프로필 이미지를 설정하지 않은 경우 null로 반환됩니다.
+                        프로필 이미지는 선택 정보이며 온보딩 완료 여부에는 영향을 주지 않습니다.
+                        """,
+                example = "https://example.com/profile-images/user-1.jpg",
+                nullable = true
+        )
+        String profileImageUrl,
+
+        @Schema(
+                description = """
                         학교 이메일 인증 완료 여부입니다.
                         false이면 프론트는 학교 이메일 인증 화면을 표시합니다.
                         """,
@@ -71,7 +82,8 @@ public record MyProfileResponse(
         @Schema(
                 description = """
                         기본 프로필 작성 완료 여부입니다.
-                        취미 태그, 기술 태그, 가용 일정 설정 완료 여부는 포함하지 않습니다.
+                        프로필 이미지, 취미 태그, 기술 태그,
+                        가용 일정 설정 완료 여부는 포함하지 않습니다.
                         """,
                 example = "true"
         )

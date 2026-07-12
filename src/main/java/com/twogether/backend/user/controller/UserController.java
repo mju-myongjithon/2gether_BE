@@ -2,6 +2,7 @@ package com.twogether.backend.user.controller;
 
 import com.twogether.backend.global.response.ApiResponse;
 import com.twogether.backend.user.dto.request.OnboardingUpdateRequest;
+import com.twogether.backend.user.dto.request.ProfileImageUpdateRequest;
 import com.twogether.backend.user.dto.response.MyProfileResponse;
 import com.twogether.backend.user.dto.response.NicknameCheckResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -64,6 +65,9 @@ public class UserController {
                     - emailVerified가 true이고 profileCompleted가 false이면 기본 프로필 입력 화면으로 이동합니다.
                     - emailVerified와 profileCompleted가 모두 true이면 메인 화면으로 이동할 수 있습니다.
 
+                    프로필 이미지는 선택 정보이며,
+                    설정하지 않은 경우 profileImageUrl은 null로 반환될 수 있습니다.
+
                     취미 태그, 기술 태그, 가용 일정은
                     기본 프로필 완료 후 사용자가 별도로 설정할 수 있습니다.
 
@@ -91,6 +95,7 @@ public class UserController {
                 "컴퓨터공학과",
                 "NATURAL",
                 "서울 강남구",
+                "https://example.com/profile-images/user-1.jpg",
                 true,
                 true
         );
@@ -100,6 +105,36 @@ public class UserController {
                         "내 프로필 조회에 성공했습니다.",
                         profile
                 )
+        );
+    }
+
+    @Operation(
+            summary = "내 프로필 이미지 수정",
+            description = """
+                현재 로그인한 사용자의 프로필 이미지를 수정합니다.
+
+                프론트에서 이미지 파일을 Supabase Storage에 먼저 업로드한 뒤,
+                발급받은 이미지 URL을 이 API로 전달합니다.
+
+                새로운 이미지 URL을 전달하면 프로필 이미지가 추가되거나 변경됩니다.
+
+                profileImageUrl에 null을 전달하면
+                기존 프로필 이미지를 제거하고 기본 이미지로 되돌립니다.
+
+                프로필 이미지는 선택 정보이며,
+                온보딩 완료 여부에는 영향을 주지 않습니다.
+
+                현재 Swagger 명세 단계에서는 실제 DB에 저장하지 않고
+                전달된 값에 따라 더미 성공 응답만 반환합니다.
+                """
+    )
+    @SecurityRequirement(name = "Bearer Authentication")
+    @PatchMapping("/me/profile-image")
+    public ResponseEntity<ApiResponse<Void>> updateMyProfileImage(
+            @RequestBody ProfileImageUpdateRequest request
+    ) {
+        return ResponseEntity.ok(
+                ApiResponse.success("프로필 이미지 수정에 성공했습니다.")
         );
     }
 
