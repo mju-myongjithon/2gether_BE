@@ -20,7 +20,7 @@ public record GatheringMemberListResponse(
         @Schema(description = "학과명", example = "컴퓨터공학과")
         String departmentName,
 
-        @Schema(description = "캠퍼스", example = "자연캠", allowableValues = {"인문캠", "자연캠"})
+        @Schema(description = "캠퍼스", example = "NATURAL", allowableValues = {"HUMANITIES", "NATURAL"})
         String campus,
 
         @Schema(description = "모임 참여 일시", example = "2026-07-09T19:00:00+09:00")

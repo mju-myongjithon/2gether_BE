@@ -89,7 +89,7 @@ public class GatheringController {
             @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "20") int size
     ) {
         HostSummaryResponse host = new HostSummaryResponse(
-                1L, "인준", "컴퓨터공학과", "자연캠"
+                1L, "인준", "컴퓨터공학과", "NATURAL"
         );
 
         GatheringSummaryResponse summary = new GatheringSummaryResponse(
@@ -126,12 +126,12 @@ public class GatheringController {
             @PathVariable Long gatheringId
     ) {
         HostSummaryResponse host = new HostSummaryResponse(
-                1L, "인준", "컴퓨터공학과", "자연캠"
+                1L, "인준", "컴퓨터공학과", "NATURAL"
         );
 
         List<GatheringMemberResponse> members = List.of(
-                new GatheringMemberResponse(1L, "인준", GatheringMemberRole.HOST, "컴퓨터공학과", "자연캠"),
-                new GatheringMemberResponse(2L, "기획러", GatheringMemberRole.MEMBER, "경영학과", "인문캠")
+                new GatheringMemberResponse(1L, "인준", GatheringMemberRole.HOST, "컴퓨터공학과", "NATURAL"),
+                new GatheringMemberResponse(2L, "기획러", GatheringMemberRole.MEMBER, "경영학과", "HUMANITIES")
         );
 
         GatheringDetailResponse response = new GatheringDetailResponse(

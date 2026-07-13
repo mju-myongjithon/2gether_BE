@@ -1,5 +1,7 @@
 package com.twogether.backend.gatheringapplication.dto.response;
 
+import com.twogether.backend.tag.dto.response.HobbyTagResponse;
+import com.twogether.backend.tag.dto.response.SkillTagResponse;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.util.List;
@@ -16,14 +18,14 @@ public record ApplicantResponse(
         @Schema(description = "학과명", example = "경영학과")
         String departmentName,
 
-        @Schema(description = "캠퍼스", example = "인문캠", allowableValues = {"인문캠", "자연캠"})
+        @Schema(description = "캠퍼스", example = "HUMANITIES", allowableValues = {"HUMANITIES", "NATURAL"})
         String campus,
 
-        @Schema(description = "취미 태그 목록", example = "[\"맛집 탐방\"]")
-        List<String> hobbyTags,
+        @Schema(description = "취미 태그 목록")
+        List<HobbyTagResponse> hobbyTags,
 
-        @Schema(description = "기술 태그 목록", example = "[\"기획\", \"발표\"]")
-        List<String> skillTags
+        @Schema(description = "기술 태그 목록")
+        List<SkillTagResponse> skillTags
 
 ) {
 }

@@ -12,7 +12,11 @@ import com.twogether.backend.gatheringapplication.dto.response.GatheringApplicat
 import com.twogether.backend.gatheringapplication.dto.response.GatheringBriefResponse;
 import com.twogether.backend.gatheringapplication.dto.response.MyApplicationResponse;
 import com.twogether.backend.global.response.ApiResponse;
+import com.twogether.backend.global.response.PageResponse;
+import com.twogether.backend.tag.dto.response.HobbyTagResponse;
+import com.twogether.backend.tag.dto.response.SkillTagResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
@@ -20,6 +24,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.OffsetDateTime;
@@ -66,20 +71,24 @@ public class GatheringApplicationController {
             description = """
                     방장만 조회할 수 있습니다.
 
+                    페이지네이션은 page=0, size=20 방식을 기본으로 합니다.
+
                     현재 Swagger 명세 단계에서는 더미 신청자 목록을 반환합니다.
                     """
     )
     @GetMapping("/api/gatherings/{gatheringId}/applications")
-    public ResponseEntity<ApiResponse<List<GatheringApplicationResponse>>> getGatheringApplications(
-            @PathVariable Long gatheringId
+    public ResponseEntity<ApiResponse<PageResponse<GatheringApplicationResponse>>> getGatheringApplications(
+            @PathVariable Long gatheringId,
+            @Parameter(description = "페이지 번호") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "20") int size
     ) {
         ApplicantResponse applicant = new ApplicantResponse(
                 2L,
                 "기획러",
                 "경영학과",
-                "인문캠",
-                List.of("맛집 탐방"),
-                List.of("기획", "발표")
+                "HUMANITIES",
+                List.of(new HobbyTagResponse(3L, "맛집 탐방")),
+                List.of(new SkillTagResponse(1L, "기획"), new SkillTagResponse(2L, "발표"))
         );
 
         GatheringApplicationResponse response = new GatheringApplicationResponse(
@@ -90,8 +99,11 @@ public class GatheringApplicationController {
                 applicant
         );
 
+        PageResponse<GatheringApplicationResponse> pageResponse =
+                PageResponse.of(List.of(response), page, size, 1);
+
         return ResponseEntity.ok(
-                ApiResponse.success("신청자 목록 조회에 성공했습니다.", List.of(response))
+                ApiResponse.success("신청자 목록 조회에 성공했습니다.", pageResponse)
         );
     }
 
@@ -100,11 +112,16 @@ public class GatheringApplicationController {
             description = """
                     현재 로그인한 사용자가 신청한 모임 목록을 조회합니다.
 
+                    페이지네이션은 page=0, size=20 방식을 기본으로 합니다.
+
                     현재 Swagger 명세 단계에서는 더미 신청 목록을 반환합니다.
                     """
     )
     @GetMapping("/api/users/me/applications")
-    public ResponseEntity<ApiResponse<List<MyApplicationResponse>>> getMyApplications() {
+    public ResponseEntity<ApiResponse<PageResponse<MyApplicationResponse>>> getMyApplications(
+            @Parameter(description = "페이지 번호") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "20") int size
+    ) {
         GatheringBriefResponse gathering = new GatheringBriefResponse(
                 1L,
                 "인문X자연 해커톤 팀 모집",
@@ -119,8 +136,11 @@ public class GatheringApplicationController {
                 gathering
         );
 
+        PageResponse<MyApplicationResponse> pageResponse =
+                PageResponse.of(List.of(response), page, size, 1);
+
         return ResponseEntity.ok(
-                ApiResponse.success("내 신청 목록 조회에 성공했습니다.", List.of(response))
+                ApiResponse.success("내 신청 목록 조회에 성공했습니다.", pageResponse)
         );
     }
 

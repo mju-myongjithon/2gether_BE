@@ -3,7 +3,9 @@ package com.twogether.backend.gatheringmember.controller;
 import com.twogether.backend.gatheringmember.domain.GatheringMemberRole;
 import com.twogether.backend.gatheringmember.dto.response.GatheringMemberListResponse;
 import com.twogether.backend.global.response.ApiResponse;
+import com.twogether.backend.global.response.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
@@ -11,6 +13,7 @@ import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.OffsetDateTime;
@@ -29,26 +32,33 @@ public class GatheringMemberController {
             description = """
                     모임에 참여 중인 멤버 목록을 조회합니다.
 
+                    페이지네이션은 page=0, size=20 방식을 기본으로 합니다.
+
                     현재 Swagger 명세 단계에서는 더미 멤버 목록을 반환합니다.
                     """
     )
     @GetMapping
-    public ResponseEntity<ApiResponse<List<GatheringMemberListResponse>>> getGatheringMembers(
-            @PathVariable Long gatheringId
+    public ResponseEntity<ApiResponse<PageResponse<GatheringMemberListResponse>>> getGatheringMembers(
+            @PathVariable Long gatheringId,
+            @Parameter(description = "페이지 번호") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "20") int size
     ) {
         List<GatheringMemberListResponse> members = List.of(
                 new GatheringMemberListResponse(
-                        1L, "인준", GatheringMemberRole.HOST, "컴퓨터공학과", "자연캠",
+                        1L, "인준", GatheringMemberRole.HOST, "컴퓨터공학과", "NATURAL",
                         OffsetDateTime.parse("2026-07-09T19:00:00+09:00")
                 ),
                 new GatheringMemberListResponse(
-                        2L, "기획러", GatheringMemberRole.MEMBER, "경영학과", "인문캠",
+                        2L, "기획러", GatheringMemberRole.MEMBER, "경영학과", "HUMANITIES",
                         OffsetDateTime.parse("2026-07-09T19:50:00+09:00")
                 )
         );
 
+        PageResponse<GatheringMemberListResponse> response =
+                PageResponse.of(members, page, size, members.size());
+
         return ResponseEntity.ok(
-                ApiResponse.success("모임 멤버 목록 조회에 성공했습니다.", members)
+                ApiResponse.success("모임 멤버 목록 조회에 성공했습니다.", response)
         );
     }
 

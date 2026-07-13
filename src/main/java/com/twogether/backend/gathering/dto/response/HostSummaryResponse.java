@@ -14,7 +14,7 @@ public record HostSummaryResponse(
         @Schema(description = "학과명", example = "컴퓨터공학과")
         String departmentName,
 
-        @Schema(description = "캠퍼스", example = "자연캠", allowableValues = {"인문캠", "자연캠"})
+        @Schema(description = "캠퍼스", example = "NATURAL", allowableValues = {"HUMANITIES", "NATURAL"})
         String campus
 
 ) {
