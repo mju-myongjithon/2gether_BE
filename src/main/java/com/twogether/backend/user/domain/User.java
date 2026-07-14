@@ -45,6 +45,12 @@ public class User {
     @Column(name = "preferred_region")
     private String preferredRegion;
 
+    @Column(
+            name = "introduction",
+            length = 200
+    )
+    private String introduction;
+
     @Column(name = "profile_image_url")
     private String profileImageUrl;
 
@@ -167,4 +173,19 @@ public class User {
         this.emailVerified = true;
         this.updatedAt = LocalDateTime.now();
     }
+    public String getIntroduction() {
+        return introduction;
+    }
+
+    public void updateIntroduction(String introduction) {
+        this.introduction = introduction;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public void updateProfileImage(String profileImageUrl) {
+        this.profileImageUrl = profileImageUrl;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+
 }

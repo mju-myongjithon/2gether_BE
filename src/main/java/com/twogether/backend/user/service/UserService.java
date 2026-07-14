@@ -3,11 +3,13 @@ package com.twogether.backend.user.service;
 import com.twogether.backend.global.exception.BusinessException;
 import com.twogether.backend.global.exception.ErrorCode;
 import com.twogether.backend.user.domain.User;
+import com.twogether.backend.user.dto.request.IntroductionUpdateRequest;
 import com.twogether.backend.user.dto.request.OnboardingUpdateRequest;
+import com.twogether.backend.user.dto.request.ProfileImageUpdateRequest;
+import com.twogether.backend.user.dto.response.MyProfileResponse;
 import com.twogether.backend.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.twogether.backend.user.dto.response.MyProfileResponse;
 
 import java.util.regex.Pattern;
 
@@ -17,6 +19,7 @@ public class UserService {
 
     private static final int NICKNAME_MIN_LENGTH = 2;
     private static final int NICKNAME_MAX_LENGTH = 12;
+    private static final int INTRODUCTION_MAX_LENGTH = 200;
 
     private static final Pattern NICKNAME_PATTERN =
             Pattern.compile("^[가-힣a-zA-Z0-9_]+$");
@@ -35,15 +38,18 @@ public class UserService {
     public User findOrCreateUser(String authUserId) {
         return userRepository.findByAuthUserId(authUserId)
                 .orElseGet(() ->
-                        userRepository.save(new User(authUserId))
+                        userRepository.save(
+                                new User(authUserId)
+                        )
                 );
     }
 
     /**
      * 닉네임의 앞뒤 공백을 제거한 뒤 형식을 검증합니다.
      */
-    public String validateAndNormalizeNickname(String nickname) {
-
+    public String validateAndNormalizeNickname(
+            String nickname
+    ) {
         if (nickname == null) {
             throw new BusinessException(
                     ErrorCode.INVALID_NICKNAME_EMPTY
@@ -58,8 +64,10 @@ public class UserService {
             );
         }
 
-        if (normalizedNickname.length() < NICKNAME_MIN_LENGTH
-                || normalizedNickname.length() > NICKNAME_MAX_LENGTH) {
+        if (normalizedNickname.length()
+                < NICKNAME_MIN_LENGTH
+                || normalizedNickname.length()
+                > NICKNAME_MAX_LENGTH) {
 
             throw new BusinessException(
                     ErrorCode.INVALID_NICKNAME_LENGTH
@@ -84,9 +92,13 @@ public class UserService {
      * true: 사용 가능
      * false: 이미 사용 중
      */
-    public boolean isNicknameAvailable(String nickname) {
+    public boolean isNicknameAvailable(
+            String nickname
+    ) {
         String normalizedNickname =
-                validateAndNormalizeNickname(nickname);
+                validateAndNormalizeNickname(
+                        nickname
+                );
 
         return !userRepository.existsByNickname(
                 normalizedNickname
@@ -101,12 +113,7 @@ public class UserService {
             String authUserId,
             OnboardingUpdateRequest request
     ) {
-        User user = userRepository.findByAuthUserId(authUserId)
-                .orElseThrow(() ->
-                        new BusinessException(
-                                ErrorCode.USER_NOT_FOUND
-                        )
-                );
+        User user = findUser(authUserId);
 
         String normalizedNickname =
                 validateAndNormalizeNickname(
@@ -123,7 +130,9 @@ public class UserService {
                         || !user.getNickname()
                         .equals(normalizedNickname);
 
-        if (nicknameAlreadyExists && nicknameChanged) {
+        if (nicknameAlreadyExists
+                && nicknameChanged) {
+
             throw new BusinessException(
                     ErrorCode.DUPLICATE_NICKNAME
             );
@@ -142,12 +151,52 @@ public class UserService {
     }
 
     /**
+     * 현재 로그인한 사용자의 프로필 이미지를 수정합니다.
+     *
+     * null을 전달하면 기존 프로필 이미지를 제거합니다.
+     */
+    @Transactional
+    public void updateProfileImage(
+            String authUserId,
+            ProfileImageUpdateRequest request
+    ) {
+        User user = findUser(authUserId);
+
+        user.updateProfileImage(
+                request.profileImageUrl()
+        );
+    }
+
+    /**
+     * 현재 로그인한 사용자의 간단한 자기소개를 수정합니다.
+     *
+     * null 또는 공백만 전달하면 기존 자기소개를 제거합니다.
+     */
+    @Transactional
+    public void updateIntroduction(
+            String authUserId,
+            IntroductionUpdateRequest request
+    ) {
+        User user = findUser(authUserId);
+
+        String normalizedIntroduction =
+                normalizeIntroduction(
+                        request.introduction()
+                );
+
+        user.updateIntroduction(
+                normalizedIntroduction
+        );
+    }
+
+    /**
      * 현재 로그인한 사용자의 프로필을 조회합니다.
      * 회원이 없으면 기본 상태의 신규 회원을 생성합니다.
      */
     @Transactional
-    public MyProfileResponse getMyProfile(String authUserId) {
-
+    public MyProfileResponse getMyProfile(
+            String authUserId
+    ) {
         User user = findOrCreateUser(authUserId);
 
         return new MyProfileResponse(
@@ -165,9 +214,55 @@ public class UserService {
                 null,
 
                 user.getPreferredRegion(),
+                user.getIntroduction(),
                 user.getProfileImageUrl(),
                 user.isEmailVerified(),
                 user.isProfileCompleted()
         );
+    }
+
+    /**
+     * Supabase 사용자 ID를 기준으로 사용자를 조회합니다.
+     */
+    private User findUser(
+            String authUserId
+    ) {
+        return userRepository
+                .findByAuthUserId(authUserId)
+                .orElseThrow(() ->
+                        new BusinessException(
+                                ErrorCode.USER_NOT_FOUND
+                        )
+                );
+    }
+
+    /**
+     * 자기소개 앞뒤 공백을 제거하고 길이를 검증합니다.
+     *
+     * null 또는 공백만 입력하면 null로 변환합니다.
+     */
+    private String normalizeIntroduction(
+            String introduction
+    ) {
+        if (introduction == null) {
+            return null;
+        }
+
+        String normalizedIntroduction =
+                introduction.trim();
+
+        if (normalizedIntroduction.isEmpty()) {
+            return null;
+        }
+
+        if (normalizedIntroduction.length()
+                > INTRODUCTION_MAX_LENGTH) {
+
+            throw new BusinessException(
+                    ErrorCode.INVALID_INTRODUCTION_LENGTH
+            );
+        }
+
+        return normalizedIntroduction;
     }
 }
