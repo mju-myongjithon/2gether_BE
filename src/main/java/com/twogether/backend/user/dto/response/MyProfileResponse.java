@@ -2,7 +2,7 @@ package com.twogether.backend.user.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 
-@Schema(description = "내 프로필 조회 응답")
+@Schema(description = "내 프로필 및 가입 상태 조회 응답")
 public record MyProfileResponse(
 
         @Schema(
@@ -13,65 +13,89 @@ public record MyProfileResponse(
 
         @Schema(
                 description = "사용자 실명",
-                example = "최인준"
+                example = "최인준",
+                nullable = true
         )
         String realName,
 
         @Schema(
                 description = "서비스 닉네임",
-                example = "인준"
+                example = "인준",
+                nullable = true
         )
         String nickname,
 
         @Schema(
                 description = "사용자 나이",
-                example = "24"
+                example = "23",
+                nullable = true
         )
         Integer age,
 
         @Schema(
                 description = "명지대학교 학번",
-                example = "60231234"
+                example = "60231234",
+                nullable = true
         )
         String studentNumber,
 
         @Schema(
                 description = "소속 학과 ID",
-                example = "1"
+                example = "1",
+                nullable = true
         )
         Long departmentId,
 
         @Schema(
-                description = "소속 학과명",
-                example = "컴퓨터공학과"
+                description = """
+                        소속 학과명입니다.
+                        아직 학과 테이블과 연동되지 않은 경우 null로 반환됩니다.
+                        """,
+                example = "컴퓨터공학과",
+                nullable = true
         )
         String departmentName,
 
         @Schema(
-                description = "학번을 기준으로 백엔드가 분류한 캠퍼스",
-                example = "NATURAL"
+                description = """
+                        사용자의 소속 캠퍼스입니다.
+                        아직 캠퍼스 분류 로직이 연결되지 않은 경우 null로 반환됩니다.
+                        """,
+                example = "NATURAL",
+                nullable = true
         )
         String campus,
 
         @Schema(
                 description = "사용자가 선택한 시·군·구 단위 선호 활동 지역",
-                example = "서울 강남구"
+                example = "서울 강남구",
+                nullable = true
         )
         String preferredRegion,
 
         @Schema(
                 description = """
-                        학교 이메일 인증 완료 여부입니다.
-                        false이면 프론트는 학교 이메일 인증 화면을 표시합니다.
+                        현재 설정된 프로필 이미지 URL입니다.
+                        프로필 이미지를 설정하지 않은 경우 null로 반환됩니다.
                         """,
-                example = "true"
+                example = "https://example.com/profile-images/user-1.jpg",
+                nullable = true
+        )
+        String profileImageUrl,
+
+        @Schema(
+                description = """
+                        학교 이메일 인증 완료 여부입니다.
+                        false이면 프론트는 학교 이메일 인증 화면으로 이동합니다.
+                        """,
+                example = "false"
         )
         boolean emailVerified,
 
         @Schema(
                 description = """
-                        기본 프로필 작성 완료 여부입니다.
-                        취미 태그, 기술 태그, 가용 일정 설정 완료 여부는 포함하지 않습니다.
+                        필수 온보딩 프로필 작성 완료 여부입니다.
+                        false이면 프론트는 온보딩 화면으로 이동합니다.
                         """,
                 example = "true"
         )

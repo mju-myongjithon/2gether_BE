@@ -10,6 +10,24 @@ public enum ErrorCode {
             "요청 값이 올바르지 않습니다."
     ),
 
+    INVALID_NICKNAME_EMPTY(
+            HttpStatus.BAD_REQUEST,
+            "INVALID_NICKNAME_EMPTY",
+            "닉네임은 비어 있거나 공백일 수 없습니다."
+    ),
+
+    INVALID_NICKNAME_LENGTH(
+            HttpStatus.BAD_REQUEST,
+            "INVALID_NICKNAME_LENGTH",
+            "닉네임은 2자 이상 12자 이하로 입력해주세요."
+    ),
+
+    INVALID_NICKNAME_FORMAT(
+            HttpStatus.BAD_REQUEST,
+            "INVALID_NICKNAME_FORMAT",
+            "닉네임은 한글, 영문, 숫자, 밑줄만 사용할 수 있습니다."
+    ),
+
     USER_NOT_FOUND(
             HttpStatus.NOT_FOUND,
             "USER_NOT_FOUND",
@@ -32,7 +50,11 @@ public enum ErrorCode {
     private final String code;
     private final String message;
 
-    ErrorCode(HttpStatus status, String code, String message) {
+    ErrorCode(
+            HttpStatus status,
+            String code,
+            String message
+    ) {
         this.status = status;
         this.code = code;
         this.message = message;

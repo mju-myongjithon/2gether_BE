@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Supabase Google 로그인 테스트</title>
+</head>
+<body>
+<h1>Supabase Google 로그인 테스트</h1>
+
+<button id="loginButton">Google 로그인</button>
+<button id="logoutButton">로그아웃</button>
+
+<h2 id="status">로그인 전</h2>
+<p id="email"></p>
+
+<h3>Access Token</h3>
+<textarea
+        id="token"
+        rows="16"
+        cols="120"
+        readonly
+></textarea>
+
+<script type="module">
+    import { createClient } from
+            "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+
+    const supabaseUrl =
+        "https://lekmsfkqflrdoouqtpyc.supabase.co";
+
+    const supabasePublishableKey =
+        "sb_publishable_--tZvs4C5mBqLhOV0JixMQ_TfEEsxjB";
+
+    const supabase = createClient(
+        supabaseUrl,
+        supabasePublishableKey
+    );
+
+    const loginButton =
+        document.getElementById("loginButton");
+
+    const logoutButton =
+        document.getElementById("logoutButton");
+
+    const statusElement =
+        document.getElementById("status");
+
+    const emailElement =
+        document.getElementById("email");
+
+    const tokenElement =
+        document.getElementById("token");
+
+    function displaySession(session) {
+        if (!session) {
+            statusElement.textContent = "로그인 전";
+            emailElement.textContent = "";
+            tokenElement.value = "";
+            return;
+        }
+
+        statusElement.textContent = "로그인 성공";
+        emailElement.textContent =
+            `이메일: ${session.user.email}`;
+
+        tokenElement.value =
+            session.access_token;
+    }
+
+    loginButton.addEventListener(
+        "click",
+        async () => {
+            const { error } =
+                await supabase.auth.signInWithOAuth({
+                    provider: "google",
+                    options: {
+                        redirectTo:
+                            "http://localhost:8080/login-test.html"
+                    }
+                });
+
+            if (error) {
+                statusElement.textContent =
+                    `로그인 오류: ${error.message}`;
+            }
+        }
+    );
+
+    logoutButton.addEventListener(
+        "click",
+        async () => {
+            const { error } =
+                await supabase.auth.signOut();
+
+            if (error) {
+                statusElement.textContent =
+                    `로그아웃 오류: ${error.message}`;
+                return;
+            }
+
+            displaySession(null);
+        }
+    );
+
+    const { data, error } =
+        await supabase.auth.getSession();
+
+    if (error) {
+        statusElement.textContent =
+            `세션 조회 오류: ${error.message}`;
+    } else {
+        displaySession(data.session);
+    }
+
+    supabase.auth.onAuthStateChange(
+        (_event, session) => {
+            displaySession(session);
+        }
+    );
+</script>
+</body>
+</html>
