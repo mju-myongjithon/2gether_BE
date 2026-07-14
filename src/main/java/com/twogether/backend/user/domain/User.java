@@ -49,6 +49,12 @@ public class User {
     private String profileImageUrl;
 
     @Column(
+            name = "school_email",
+            unique = true
+    )
+    private String schoolEmail;
+
+    @Column(
             name = "email_verified",
             nullable = false
     )
@@ -150,5 +156,15 @@ public class User {
     }
     public Long getDepartmentId() {
         return departmentId;
+    }
+
+    public String getSchoolEmail() {
+        return schoolEmail;
+    }
+
+    public void verifySchoolEmail(String schoolEmail) {
+        this.schoolEmail = schoolEmail;
+        this.emailVerified = true;
+        this.updatedAt = LocalDateTime.now();
     }
 }
