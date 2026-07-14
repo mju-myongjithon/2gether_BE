@@ -16,5 +16,12 @@ spring:
       hibernate:
         format_sql: true
 
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          jwk-set-uri: https://lekmsfkqflrdoouqtpyc.supabase.co/auth/v1/.well-known/jwks.json
+          jws-algorithms: ES256
+
 server:
   port: 8080
