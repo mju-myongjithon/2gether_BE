@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import com.twogether.backend.user.dto.request.IntroductionUpdateRequest;
 
 @Tag(
         name = "사용자 API",
@@ -94,20 +95,25 @@ public class UserController {
     @Operation(
             summary = "내 프로필 이미지 수정",
             description = """
-                    현재 로그인한 사용자의 프로필 이미지를 수정합니다.
+                현재 로그인한 사용자의 프로필 이미지를 수정합니다.
 
-                    프론트에서 이미지 파일을 Supabase Storage에 먼저 업로드한 뒤,
-                    발급받은 이미지 URL을 이 API로 전달합니다.
+                프론트에서 이미지 파일을 Supabase Storage에 먼저 업로드한 뒤,
+                발급받은 이미지 URL을 이 API로 전달합니다.
 
-                    현재는 실제 DB 저장 기능을 연결하기 전이므로
-                    성공 응답만 반환합니다.
-                    """
+                null을 전달하면 기존 프로필 이미지를 제거합니다.
+                """
     )
     @SecurityRequirement(name = "Bearer Authentication")
     @PatchMapping("/me/profile-image")
     public ResponseEntity<ApiResponse<Void>> updateMyProfileImage(
+            @AuthenticationPrincipal Jwt jwt,
             @RequestBody ProfileImageUpdateRequest request
     ) {
+        userService.updateProfileImage(
+                jwt.getSubject(),
+                request
+        );
+
         return ResponseEntity.ok(
                 ApiResponse.success(
                         "프로필 이미지 수정에 성공했습니다."
@@ -157,6 +163,32 @@ public class UserController {
                 ApiResponse.success(
                         message,
                         response
+                )
+        );
+    }
+    @Operation(
+            summary = "내 자기소개 수정",
+            description = """
+                현재 로그인한 사용자의 간단한 자기소개를 수정합니다.
+
+                자기소개는 최대 200자까지 입력할 수 있으며,
+                null 또는 공백을 전달하면 기존 자기소개를 삭제합니다.
+                """
+    )
+    @SecurityRequirement(name = "Bearer Authentication")
+    @PatchMapping("/me/introduction")
+    public ResponseEntity<ApiResponse<Void>> updateMyIntroduction(
+            @AuthenticationPrincipal Jwt jwt,
+            @RequestBody IntroductionUpdateRequest request
+    ) {
+        userService.updateIntroduction(
+                jwt.getSubject(),
+                request
+        );
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "자기소개 수정에 성공했습니다."
                 )
         );
     }

@@ -28,6 +28,12 @@ public enum ErrorCode {
             "닉네임은 한글, 영문, 숫자, 밑줄만 사용할 수 있습니다."
     ),
 
+    INVALID_INTRODUCTION_LENGTH(
+            HttpStatus.BAD_REQUEST,
+            "INVALID_INTRODUCTION_LENGTH",
+            "자기소개는 200자 이하로 입력해주세요."
+    ),
+
     USER_NOT_FOUND(
             HttpStatus.NOT_FOUND,
             "USER_NOT_FOUND",

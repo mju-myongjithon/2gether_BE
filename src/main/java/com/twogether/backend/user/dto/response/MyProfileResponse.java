@@ -75,6 +75,16 @@ public record MyProfileResponse(
 
         @Schema(
                 description = """
+                        사용자의 간단한 자기소개입니다.
+                        자기소개를 작성하지 않은 경우 null로 반환됩니다.
+                        """,
+                example = "백엔드 개발과 운동을 좋아합니다.",
+                nullable = true
+        )
+        String introduction,
+
+        @Schema(
+                description = """
                         현재 설정된 프로필 이미지 URL입니다.
                         프로필 이미지를 설정하지 않은 경우 null로 반환됩니다.
                         """,
