@@ -5,6 +5,7 @@ import com.twogether.backend.tag.dto.request.HobbyTagUpdateRequest;
 import com.twogether.backend.tag.dto.request.SkillTagUpdateRequest;
 import com.twogether.backend.tag.dto.response.HobbyTagResponse;
 import com.twogether.backend.tag.dto.response.SkillTagResponse;
+import com.twogether.backend.tag.service.TagService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -25,25 +26,29 @@ import java.util.List;
 @RequestMapping("/api")
 public class TagController {
 
+    private final TagService tagService;
+
+    public TagController(
+            TagService tagService
+    ) {
+        this.tagService = tagService;
+    }
+
     @Operation(
             summary = "취미 태그 목록 조회",
             description = """
                     온보딩 및 프로필 설정에서 선택할 수 있는
                     취미 태그 목록을 조회합니다.
 
-                    태그 목록은 로그인 전에도 화면 구성을 위해 조회할 수 있으며,
-                    현재 Swagger 명세 단계에서는 더미 데이터를 반환합니다.
+                    로그인 전에도 화면 구성을 위해 조회할 수 있으며,
+                    취미 태그 정보는 데이터베이스에서 조회하여 반환합니다.
                     """
     )
     @GetMapping("/hobby-tags")
     public ResponseEntity<ApiResponse<List<HobbyTagResponse>>> getHobbyTags() {
 
-        List<HobbyTagResponse> hobbyTags = List.of(
-                new HobbyTagResponse(1L, "스터디"),
-                new HobbyTagResponse(2L, "운동"),
-                new HobbyTagResponse(3L, "맛집 탐방"),
-                new HobbyTagResponse(4L, "보드게임")
-        );
+        List<HobbyTagResponse> hobbyTags =
+                tagService.getHobbyTags();
 
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -56,22 +61,18 @@ public class TagController {
     @Operation(
             summary = "기술 태그 목록 조회",
             description = """
-                    온보딩 및 프로필 설정에서 선택할 수 있는
-                    기술 태그 목록을 조회합니다.
+                온보딩 및 프로필 설정에서 선택할 수 있는
+                기술 태그 목록을 조회합니다.
 
-                    태그 목록은 로그인 전에도 화면 구성을 위해 조회할 수 있으며,
-                    현재 Swagger 명세 단계에서는 더미 데이터를 반환합니다.
-                    """
+                로그인 전에도 화면 구성을 위해 조회할 수 있으며,
+                기술 태그 정보는 데이터베이스에서 조회하여 반환합니다.
+                """
     )
     @GetMapping("/skill-tags")
     public ResponseEntity<ApiResponse<List<SkillTagResponse>>> getSkillTags() {
 
-        List<SkillTagResponse> skillTags = List.of(
-                new SkillTagResponse(1L, "Spring Boot"),
-                new SkillTagResponse(2L, "React"),
-                new SkillTagResponse(3L, "Figma"),
-                new SkillTagResponse(4L, "영상 편집")
-        );
+        List<SkillTagResponse> skillTags =
+                tagService.getSkillTags();
 
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -87,11 +88,6 @@ public class TagController {
                     현재 로그인한 사용자가 선택한 취미 태그 목록을
                     요청으로 전달된 tagIds 목록으로 전체 교체합니다.
 
-                    예:
-                    {
-                      "tagIds": [1, 3]
-                    }
-
                     빈 배열을 보내면 현재 사용자의 취미 태그 선택을
                     모두 해제하는 것으로 처리할 수 있습니다.
 
@@ -105,7 +101,9 @@ public class TagController {
             @RequestBody HobbyTagUpdateRequest request
     ) {
         return ResponseEntity.ok(
-                ApiResponse.success("취미 태그 수정에 성공했습니다.")
+                ApiResponse.success(
+                        "취미 태그 수정에 성공했습니다."
+                )
         );
     }
 
@@ -114,11 +112,6 @@ public class TagController {
             description = """
                     현재 로그인한 사용자가 선택한 기술 태그 목록을
                     요청으로 전달된 tagIds 목록으로 전체 교체합니다.
-
-                    예:
-                    {
-                      "tagIds": [1, 2]
-                    }
 
                     빈 배열을 보내면 현재 사용자의 기술 태그 선택을
                     모두 해제하는 것으로 처리할 수 있습니다.
@@ -133,7 +126,9 @@ public class TagController {
             @RequestBody SkillTagUpdateRequest request
     ) {
         return ResponseEntity.ok(
-                ApiResponse.success("기술 태그 수정에 성공했습니다.")
+                ApiResponse.success(
+                        "기술 태그 수정에 성공했습니다."
+                )
         );
     }
 }
