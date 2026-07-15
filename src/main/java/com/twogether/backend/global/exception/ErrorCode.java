@@ -94,6 +94,24 @@ public enum ErrorCode {
             "이미 사용된 인증번호입니다."
     ),
 
+    INVALID_AVAILABILITY_TIME_ORDER(
+            HttpStatus.BAD_REQUEST,
+            "INVALID_AVAILABILITY_TIME_ORDER",
+            "시작 시간은 종료 시간보다 빨라야 합니다."
+    ),
+
+    INVALID_AVAILABILITY_TIME_UNIT(
+            HttpStatus.BAD_REQUEST,
+            "INVALID_AVAILABILITY_TIME_UNIT",
+            "가용 일정은 30분 단위로 입력해야 합니다."
+    ),
+
+    DUPLICATE_AVAILABILITY(
+            HttpStatus.BAD_REQUEST,
+            "DUPLICATE_AVAILABILITY",
+            "중복된 가용 일정이 포함되어 있습니다."
+    ),
+
     INTERNAL_SERVER_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "INTERNAL_SERVER_ERROR",

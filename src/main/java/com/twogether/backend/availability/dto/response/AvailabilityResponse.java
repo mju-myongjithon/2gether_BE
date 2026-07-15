@@ -1,5 +1,6 @@
 package com.twogether.backend.availability.dto.response;
 
+import com.twogether.backend.availability.domain.Availability;
 import com.twogether.backend.availability.domain.AvailabilityRepeatType;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -45,4 +46,16 @@ public record AvailabilityResponse(
         LocalTime endTime
 
 ) {
+
+        public static AvailabilityResponse from(
+                Availability availability
+        ) {
+                return new AvailabilityResponse(
+                        availability.getId(),
+                        availability.getRepeatType(),
+                        availability.getDayOfWeek(),
+                        availability.getStartTime(),
+                        availability.getEndTime()
+                );
+        }
 }
