@@ -42,16 +42,10 @@ public class SecurityConfig {
                                 "/api/users/nickname/check"
                         ).permitAll()
 
-                        // 그 외 API는 Supabase 로그인이 필요
-                        .anyRequest().authenticated()
-                )
-
-                // Authorization 헤더에 들어온 JWT 검증
-                .oauth2ResourceServer(oauth2 ->
-                        oauth2.jwt(jwt -> {
-                        })
-                );
-
-        return http.build();
-    }
-}
+                        // 모임 목록/상세/멤버 목록 조회는 로그인 없이도 열람할 수 있도록 허용
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/gatherings",
+                                "/api/gatherings/*",
+                                "/api/gatherings/*/members"
+      

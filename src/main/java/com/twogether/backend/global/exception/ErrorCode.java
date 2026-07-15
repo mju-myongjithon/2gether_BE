@@ -88,35 +88,28 @@ public enum ErrorCode {
             "이미 사용된 인증번호입니다."
     ),
 
-    INTERNAL_SERVER_ERROR(
-            HttpStatus.INTERNAL_SERVER_ERROR,
-            "INTERNAL_SERVER_ERROR",
-            "서버 내부 오류가 발생했습니다."
-    );
+    GATHERING_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "GATHERING_NOT_FOUND",
+            "모임을 찾을 수 없습니다."
+    ),
 
-    private final HttpStatus status;
-    private final String code;
-    private final String message;
+    GATHERING_NOT_HOST(
+            HttpStatus.FORBIDDEN,
+            "GATHERING_NOT_HOST",
+            "방장만 수행할 수 있는 작업입니다."
+    ),
 
-    ErrorCode(
-            HttpStatus status,
-            String code,
-            String message
-    ) {
-        this.status = status;
-        this.code = code;
-        this.message = message;
-    }
+    GATHERING_NOT_RECRUITING(
+            HttpStatus.CONFLICT,
+            "GATHERING_NOT_RECRUITING",
+            "모집 중인 모임에서만 수행할 수 있습니다."
+    ),
 
-    public HttpStatus getStatus() {
-        return status;
-    }
+    GATHERING_FULL(
+            HttpStatus.CONFLICT,
+            "GATHERING_FULL",
+            "모집 인원이 마감된 모임입니다."
+    ),
 
-    public String getCode() {
-        return code;
-    }
-
-    public String getMessage() {
-        return message;
-    }
-}
+    INVALID_GATHERING_I

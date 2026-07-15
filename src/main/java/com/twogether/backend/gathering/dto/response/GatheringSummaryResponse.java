@@ -1,6 +1,7 @@
 package com.twogether.backend.gathering.dto.response;
 
 import com.twogether.backend.gathering.domain.GatheringStatus;
+import com.twogether.backend.gathering.domain.RecruitPhase;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.OffsetDateTime;
@@ -29,14 +30,10 @@ public record GatheringSummaryResponse(
         @Schema(description = "인문X자연 융합 모임 여부", example = "true")
         boolean fusionEnabled,
 
-        @Schema(description = "모임 상태", example = "RECRUITING")
+        @Schema(description = "모임 상태 (DB 저장값)", example = "RECRUITING")
         GatheringStatus status,
 
-        @Schema(description = "모임 예정 일시", example = "2026-07-15T18:00:00+09:00")
-        OffsetDateTime meetAt,
+        @Schema(description = "모집 진행 단계 (계산값)", example = "OPEN")
+        RecruitPhase recruitPhase,
 
-        @Schema(description = "모임장 정보")
-        HostSummaryResponse host
-
-) {
-}
+        @Schema(description = "모집 시작 일시", example 
