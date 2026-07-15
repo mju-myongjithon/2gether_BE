@@ -1,21 +1,22 @@
 package com.twogether.backend.availability.controller;
 
-import com.twogether.backend.availability.domain.AvailabilityRepeatType;
 import com.twogether.backend.availability.dto.request.AvailabilityUpdateRequest;
 import com.twogether.backend.availability.dto.response.AvailabilityResponse;
+import com.twogether.backend.availability.service.AvailabilityService;
 import com.twogether.backend.global.response.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.DayOfWeek;
-import java.time.LocalTime;
 import java.util.List;
 
 @Tag(
@@ -26,6 +27,14 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/users/me/availabilities")
 public class AvailabilityController {
+
+    private final AvailabilityService availabilityService;
+
+    public AvailabilityController(
+            AvailabilityService availabilityService
+    ) {
+        this.availabilityService = availabilityService;
+    }
 
     @Operation(
             summary = "내 가용 일정 조회",
@@ -42,37 +51,19 @@ public class AvailabilityController {
                     - EVERY_WEEK: 매주
                     - ODD_WEEK: 홀수 주
                     - EVEN_WEEK: 짝수 주
-
-                    현재 Swagger 명세 단계에서는 더미 일정을 반환합니다.
                     """
     )
     @GetMapping
     public ResponseEntity<ApiResponse<List<AvailabilityResponse>>>
-    getMyAvailabilities() {
+    getMyAvailabilities(
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        String authUserId = jwt.getSubject();
 
-        List<AvailabilityResponse> availabilities = List.of(
-                new AvailabilityResponse(
-                        1L,
-                        AvailabilityRepeatType.EVERY_WEEK,
-                        DayOfWeek.MONDAY,
-                        LocalTime.of(18, 0),
-                        LocalTime.of(20, 0)
-                ),
-                new AvailabilityResponse(
-                        2L,
-                        AvailabilityRepeatType.ODD_WEEK,
-                        DayOfWeek.WEDNESDAY,
-                        LocalTime.of(19, 30),
-                        LocalTime.of(21, 0)
-                ),
-                new AvailabilityResponse(
-                        3L,
-                        AvailabilityRepeatType.EVEN_WEEK,
-                        DayOfWeek.FRIDAY,
-                        LocalTime.of(14, 0),
-                        LocalTime.of(16, 30)
-                )
-        );
+        List<AvailabilityResponse> availabilities =
+                availabilityService.getMyAvailabilities(
+                        authUserId
+                );
 
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -100,17 +91,25 @@ public class AvailabilityController {
                     - EVERY_WEEK: 매주
                     - ODD_WEEK: 홀수 주
                     - EVEN_WEEK: 짝수 주
-
-                    현재 Swagger 명세 단계에서는 실제 DB에 저장하지 않고
-                    성공 응답만 반환합니다.
                     """
     )
     @PutMapping
-    public ResponseEntity<ApiResponse<Void>> updateMyAvailabilities(
-            @RequestBody AvailabilityUpdateRequest request
+    public ResponseEntity<ApiResponse<Void>>
+    updateMyAvailabilities(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody AvailabilityUpdateRequest request
     ) {
+        String authUserId = jwt.getSubject();
+
+        availabilityService.updateMyAvailabilities(
+                authUserId,
+                request
+        );
+
         return ResponseEntity.ok(
-                ApiResponse.success("가용 일정 수정에 성공했습니다.")
+                ApiResponse.success(
+                        "가용 일정 수정에 성공했습니다."
+                )
         );
     }
 }
