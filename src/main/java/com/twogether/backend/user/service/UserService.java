@@ -10,8 +10,9 @@ import com.twogether.backend.user.dto.response.MyProfileResponse;
 import com.twogether.backend.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.twogether.backend.department.repository.DepartmentRepository;
 import java.util.regex.Pattern;
+import com.twogether.backend.department.domain.Department;
 
 @Service
 @Transactional(readOnly = true)
@@ -25,9 +26,14 @@ public class UserService {
             Pattern.compile("^[가-힣a-zA-Z0-9_]+$");
 
     private final UserRepository userRepository;
+    private final DepartmentRepository departmentRepository;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(
+            UserRepository userRepository,
+            DepartmentRepository departmentRepository
+    ) {
         this.userRepository = userRepository;
+        this.departmentRepository = departmentRepository;
     }
 
     /**
@@ -138,6 +144,22 @@ public class UserService {
             );
         }
 
+        /*
+         * 프론트에서 전달한 학과 ID가
+         * 실제 departments 테이블에 존재하는지 확인한다.
+         */
+        boolean departmentExists =
+                request.departmentId() != null
+                        && departmentRepository.existsById(
+                        request.departmentId()
+                );
+
+        if (!departmentExists) {
+            throw new BusinessException(
+                    ErrorCode.DEPARTMENT_NOT_FOUND
+            );
+        }
+
         user.completeProfile(
                 request.realName(),
                 normalizedNickname,
@@ -199,6 +221,26 @@ public class UserService {
     ) {
         User user = findOrCreateUser(authUserId);
 
+        String departmentName = null;
+        String campus = null;
+
+        if (user.getDepartmentId() != null) {
+            Department department =
+                    departmentRepository
+                            .findById(user.getDepartmentId())
+                            .orElse(null);
+
+            if (department != null) {
+                departmentName =
+                        department.getName();
+
+                campus =
+                        department.getCollege()
+                                .getCampus()
+                                .name();
+            }
+        }
+
         return new MyProfileResponse(
                 user.getId(),
                 user.getRealName(),
@@ -206,13 +248,8 @@ public class UserService {
                 user.getAge(),
                 user.getStudentNumber(),
                 user.getDepartmentId(),
-
-                // 아직 Department 엔티티와 연결하지 않았으므로 임시 null
-                null,
-
-                // 아직 캠퍼스 정보를 계산하지 않으므로 임시 null
-                null,
-
+                departmentName,
+                campus,
                 user.getPreferredRegion(),
                 user.getIntroduction(),
                 user.getProfileImageUrl(),
@@ -220,7 +257,6 @@ public class UserService {
                 user.isProfileCompleted()
         );
     }
-
     /**
      * Supabase 사용자 ID를 기준으로 사용자를 조회합니다.
      */

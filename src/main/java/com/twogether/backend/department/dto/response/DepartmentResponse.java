@@ -13,9 +13,19 @@ public record DepartmentResponse(
 
         @Schema(
                 description = "학과명",
-                example = "컴퓨터공학과"
+                example = "컴퓨터정보통신공학부"
         )
-        String name
+        String name,
+
+        @Schema(
+                description = "학과가 소속된 캠퍼스",
+                example = "NATURAL",
+                allowableValues = {
+                        "HUMANITIES",
+                        "NATURAL"
+                }
+        )
+        String campus
 
 ) {
 }

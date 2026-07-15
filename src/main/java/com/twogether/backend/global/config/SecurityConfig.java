@@ -42,6 +42,11 @@ public class SecurityConfig {
                                 "/api/users/nickname/check"
                         ).permitAll()
 
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/departments"
+                        ).permitAll()
+
                         // 그 외 API는 Supabase 로그인이 필요
                         .anyRequest().authenticated()
                 )

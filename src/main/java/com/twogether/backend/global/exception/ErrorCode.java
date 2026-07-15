@@ -40,6 +40,12 @@ public enum ErrorCode {
             "사용자를 찾을 수 없습니다."
     ),
 
+    DEPARTMENT_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "DEPARTMENT_NOT_FOUND",
+            "선택한 학과를 찾을 수 없습니다."
+    ),
+
     DUPLICATE_NICKNAME(
             HttpStatus.CONFLICT,
             "DUPLICATE_NICKNAME",
