@@ -28,3 +28,27 @@ public record GatheringUpdateRequest(
 
         @Schema(
                 description = "모집 시작 일시 (ISO 8601). 비워두면 즉시 모집이 시작된 것으로 간주합니다.",
+                example = "2026-07-10T00:00:00+09:00",
+                nullable = true
+        )
+        OffsetDateTime recruitStartAt,
+
+        @Schema(
+                description = "모집 마감 일시 (ISO 8601). 비워두면 마감일 없이 상시 모집으로 처리됩니다.",
+                example = "2026-07-16T23:59:59+09:00",
+                nullable = true
+        )
+        OffsetDateTime recruitEndAt,
+
+        @Schema(description = "모임 예정 일시 (ISO 8601)", example = "2026-07-16T18:00:00+09:00")
+        OffsetDateTime meetAt,
+
+        @Schema(
+                description = "모임 이미지 URL 목록 (최대 5개). 전달된 목록으로 기존 이미지를 전체 교체합니다.",
+                example = "[\"https://cdn.2gether.app/gatherings/1/1.png\"]",
+                nullable = true
+        )
+        List<String> imageUrls
+
+) {
+}

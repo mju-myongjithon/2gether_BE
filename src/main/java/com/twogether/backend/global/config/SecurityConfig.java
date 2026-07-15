@@ -48,4 +48,24 @@ public class SecurityConfig {
                                 "/api/gatherings",
                                 "/api/gatherings/*",
                                 "/api/gatherings/*/members"
-      
+                        ).permitAll()
+
+                        // 학과 목록 조회는 로그인 전에도 사용할 수 있으므로 허용
+                        .requestMatchers(
+                                HttpMethod.GET,
+                                "/api/departments"
+                        ).permitAll()
+
+                        // 그 외 API는 Supabase 로그인이 필요
+                        .anyRequest().authenticated()
+                )
+
+                // Authorization 헤더에 들어온 JWT 검증
+                .oauth2ResourceServer(oauth2 ->
+                        oauth2.jwt(jwt -> {
+                        })
+                );
+
+        return http.build();
+    }
+}

@@ -24,7 +24,7 @@ public record OnboardingUpdateRequest(
         Integer age,
 
         @Schema(
-                description = "명지대학교 학번. 캠퍼스 분류에 사용됩니다.",
+                description = "\"명지대학교 학번. 사용자 정보로 저장되며 캠퍼스 분류에는 사용하지 않습니다.\"",
                 example = "60231234"
         )
         String studentNumber,

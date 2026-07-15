@@ -36,4 +36,20 @@ public record GatheringSummaryResponse(
         @Schema(description = "모집 진행 단계 (계산값)", example = "OPEN")
         RecruitPhase recruitPhase,
 
-        @Schema(description = "모집 시작 일시", example 
+        @Schema(description = "모집 시작 일시", example = "2026-07-10T00:00:00+09:00", nullable = true)
+        OffsetDateTime recruitStartAt,
+
+        @Schema(description = "모집 마감 일시 (없으면 상시 모집)", example = "2026-07-14T23:59:59+09:00", nullable = true)
+        OffsetDateTime recruitEndAt,
+
+        @Schema(description = "모임 예정 일시", example = "2026-07-15T18:00:00+09:00")
+        OffsetDateTime meetAt,
+
+        @Schema(description = "대표 이미지 URL (등록된 이미지가 없으면 null)", example = "https://cdn.2gether.app/gatherings/1/1.png", nullable = true)
+        String thumbnailImageUrl,
+
+        @Schema(description = "모임장 정보")
+        HostSummaryResponse host
+
+) {
+}

@@ -40,6 +40,12 @@ public enum ErrorCode {
             "사용자를 찾을 수 없습니다."
     ),
 
+    DEPARTMENT_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "DEPARTMENT_NOT_FOUND",
+            "선택한 학과를 찾을 수 없습니다."
+    ),
+
     DUPLICATE_NICKNAME(
             HttpStatus.CONFLICT,
             "DUPLICATE_NICKNAME",
@@ -112,4 +118,67 @@ public enum ErrorCode {
             "모집 인원이 마감된 모임입니다."
     ),
 
-    INVALID_GATHERING_I
+    INVALID_GATHERING_IMAGE_COUNT(
+            HttpStatus.BAD_REQUEST,
+            "INVALID_GATHERING_IMAGE_COUNT",
+            "모임 이미지는 최대 5장까지 등록할 수 있습니다."
+    ),
+
+    DUPLICATE_APPLICATION(
+            HttpStatus.CONFLICT,
+            "DUPLICATE_APPLICATION",
+            "이미 신청한 모임입니다."
+    ),
+
+    APPLICATION_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "APPLICATION_NOT_FOUND",
+            "신청 내역을 찾을 수 없습니다."
+    ),
+
+    APPLICATION_ALREADY_REVIEWED(
+            HttpStatus.CONFLICT,
+            "APPLICATION_ALREADY_REVIEWED",
+            "이미 처리된 신청입니다."
+    ),
+
+    NOT_GATHERING_MEMBER(
+            HttpStatus.NOT_FOUND,
+            "NOT_GATHERING_MEMBER",
+            "모임 멤버가 아닙니다."
+    ),
+
+    HOST_CANNOT_LEAVE(
+            HttpStatus.CONFLICT,
+            "HOST_CANNOT_LEAVE",
+            "방장은 모임을 탈퇴할 수 없습니다."
+    ),
+
+    INTERNAL_SERVER_ERROR(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "INTERNAL_SERVER_ERROR",
+            "서버 내부 오류가 발생했습니다."
+    );
+
+    private final HttpStatus status;
+    private final String code;
+    private final String message;
+
+    ErrorCode(HttpStatus status, String code, String message) {
+        this.status = status;
+        this.code = code;
+        this.message = message;
+    }
+
+    public HttpStatus getStatus() {
+        return status;
+    }
+
+    public String getCode() {
+        return code;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+}

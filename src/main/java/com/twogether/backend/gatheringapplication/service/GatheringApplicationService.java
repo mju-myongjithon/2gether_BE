@@ -269,4 +269,6 @@ public class GatheringApplicationService {
     private static OffsetDateTime toOffsetDateTime(LocalDateTime localDateTime) {
         return localDateTime == null
                 ? null
-                : localDateTime.atOffset(KST
+                : localDateTime.atOffset(KST);
+    }
+}

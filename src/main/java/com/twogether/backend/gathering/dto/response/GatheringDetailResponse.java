@@ -58,4 +58,22 @@ public record GatheringDetailResponse(
         List<GatheringImageResponse> images,
 
         @Schema(description = "모임장 정보")
-        HostSummaryResponse
+        HostSummaryResponse host,
+
+        @Schema(description = "모임 멤버 목록")
+        List<GatheringMemberResponse> members,
+
+        @Schema(description = "참여 인원 캠퍼스 비율")
+        CampusRatioResponse campusRatio,
+
+        @Schema(description = "내 신청 상태 (신청한 적이 없거나 비로그인이면 null)", example = "PENDING", nullable = true)
+        ApplicationStatus myApplicationStatus,
+
+        @Schema(description = "내가 방장인지 여부 (비로그인이면 false)", example = "false")
+        boolean isHost,
+
+        @Schema(description = "내가 멤버인지 여부 (비로그인이면 false)", example = "false")
+        boolean isMember
+
+) {
+}
