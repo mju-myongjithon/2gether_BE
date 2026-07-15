@@ -47,21 +47,19 @@ public record MyProfileResponse(
         Long departmentId,
 
         @Schema(
-                description = """
-                        소속 학과명입니다.
-                        아직 학과 테이블과 연동되지 않은 경우 null로 반환됩니다.
-                        """,
+                description = "사용자가 선택한 소속 학과명",
                 example = "컴퓨터공학과",
                 nullable = true
         )
         String departmentName,
 
         @Schema(
-                description = """
-                        사용자의 소속 캠퍼스입니다.
-                        아직 캠퍼스 분류 로직이 연결되지 않은 경우 null로 반환됩니다.
-                        """,
+                description = "선택한 학과가 소속된 캠퍼스",
                 example = "NATURAL",
+                allowableValues = {
+                        "HUMANITIES",
+                        "NATURAL"
+                },
                 nullable = true
         )
         String campus,
