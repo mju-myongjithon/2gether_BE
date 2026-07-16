@@ -112,28 +112,78 @@ public enum ErrorCode {
             "중복된 가용 일정이 포함되어 있습니다."
     ),
 
-    /*
-     * 요청 body에 tagIds가 없거나 null인 경우
-     */
+    INVALID_TAG(
+            HttpStatus.BAD_REQUEST,
+            "INVALID_TAG",
+            "존재하지 않는 태그가 포함되어 있습니다."
+    ),
+
+    GATHERING_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "GATHERING_NOT_FOUND",
+            "모임을 찾을 수 없습니다."
+    ),
+
+    FORBIDDEN(
+            HttpStatus.FORBIDDEN,
+            "FORBIDDEN",
+            "권한이 없습니다."
+    ),
+
+    GATHERING_NOT_MODIFIABLE(
+            HttpStatus.CONFLICT,
+            "GATHERING_NOT_MODIFIABLE",
+            "모집 중인 모임만 수정/취소할 수 있습니다."
+    ),
+
+    GATHERING_NOT_RECRUITING(
+            HttpStatus.CONFLICT,
+            "GATHERING_NOT_RECRUITING",
+            "모집이 마감된 모임입니다."
+    ),
+
+    DUPLICATE_APPLICATION(
+            HttpStatus.CONFLICT,
+            "DUPLICATE_APPLICATION",
+            "이미 신청한 모임입니다."
+    ),
+
+    ALREADY_MEMBER(
+            HttpStatus.CONFLICT,
+            "ALREADY_MEMBER",
+            "이미 참여 중인 모임입니다."
+    ),
+
+    APPLICATION_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "APPLICATION_NOT_FOUND",
+            "신청을 찾을 수 없습니다."
+    ),
+
+    APPLICATION_ALREADY_PROCESSED(
+            HttpStatus.CONFLICT,
+            "APPLICATION_ALREADY_PROCESSED",
+            "이미 처리된 신청입니다."
+    ),
+
+    CAPACITY_EXCEEDED(
+            HttpStatus.CONFLICT,
+            "CAPACITY_EXCEEDED",
+            "모집 정원을 초과했습니다."
+    ),
+
     INVALID_TAG_REQUEST(
             HttpStatus.BAD_REQUEST,
             "INVALID_TAG_REQUEST",
             "태그 목록은 null일 수 없습니다."
     ),
 
-    /*
-     * 요청한 태그 ID 중 DB에 존재하지 않는 태그가 있는 경우
-     */
     TAG_NOT_FOUND(
             HttpStatus.NOT_FOUND,
             "TAG_NOT_FOUND",
             "요청한 태그를 찾을 수 없습니다."
     ),
 
-    /*
-     * 취미 태그 API에 기술 태그를 보내거나,
-     * 기술 태그 API에 취미 태그를 보낸 경우
-     */
     INVALID_TAG_TYPE(
             HttpStatus.BAD_REQUEST,
             "INVALID_TAG_TYPE",

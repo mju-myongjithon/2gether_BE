@@ -3,7 +3,10 @@ package com.twogether.backend.global.exception;
 import com.twogether.backend.global.response.ErrorResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -29,6 +32,35 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(errorCode.getStatus())
+                .body(response);
+    }
+
+    /**
+     * @Valid 요청 본문 검증(Bean Validation) 실패를 처리합니다.
+     *
+     * 첫 번째 필드 에러 메시지를 사용하되, 메시지가 없으면
+     * 공통 INVALID_REQUEST 메시지를 반환합니다.
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationException(
+            MethodArgumentNotValidException exception
+    ) {
+        ErrorCode errorCode = ErrorCode.INVALID_REQUEST;
+
+        String message = exception.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .map(FieldError::getDefaultMessage)
+                .findFirst()
+                .orElse(errorCode.getMessage());
+
+        ErrorResponse response = ErrorResponse.of(
+                errorCode.getCode(),
+                message
+        );
+
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
                 .body(response);
     }
 
