@@ -9,9 +9,11 @@ import com.twogether.backend.gathering.domain.GatheringMember;
 import com.twogether.backend.gathering.domain.GatheringStatus;
 import com.twogether.backend.gathering.domain.GatheringTag;
 import com.twogether.backend.gathering.dto.request.GatheringCreateRequest;
+import com.twogether.backend.gathering.dto.request.GatheringUpdateRequest;
 import com.twogether.backend.gathering.dto.response.GatheringCreateResponse;
 import com.twogether.backend.gathering.dto.response.GatheringDetailResponse;
 import com.twogether.backend.gathering.dto.response.GatheringSummaryResponse;
+import com.twogether.backend.gathering.dto.response.GatheringUpdateResponse;
 import com.twogether.backend.gatheringapplication.domain.ApplicationStatus;
 import com.twogether.backend.gatheringmember.dto.response.GatheringMemberResponse;
 import com.twogether.backend.gathering.repository.GatheringImageRepository;
@@ -278,6 +280,68 @@ public class GatheringService {
 
         return departmentRepository.findAllById(departmentIds).stream()
                 .collect(Collectors.toMap(Department::getId, Department::getName));
+    }
+
+    /**
+     * 모임 부분 수정.
+     *
+     * 방장·모집중(RECRUITING) 조건을 검증한 뒤, 요청에 담긴 필드만 반영한다.
+     * null 필드는 기존 값을 유지하고, tagIds/imageUrls 는 목록이 오면 통째로 교체한다
+     * (빈 목록이면 전체 삭제, null이면 유지).
+     */
+    @Transactional
+    public GatheringUpdateResponse update(
+            String authUserId,
+            Long gatheringId,
+            GatheringUpdateRequest request
+    ) {
+        User me = userRepository.findByAuthUserId(authUserId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        Gathering gathering = gatheringRepository.findById(gatheringId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.GATHERING_NOT_FOUND));
+
+        if (!gathering.isHost(me.getId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+        if (!gathering.isRecruiting()) {
+            throw new BusinessException(ErrorCode.GATHERING_NOT_MODIFIABLE);
+        }
+
+        // null = 기존 값 유지
+        String title = request.title() != null ? request.title() : gathering.getTitle();
+        String content = request.content() != null ? request.content() : gathering.getContent();
+        String location = request.location() != null ? request.location() : gathering.getLocation();
+        boolean fusionEnabled = request.fusionEnabled() != null
+                ? request.fusionEnabled()
+                : gathering.isFusionEnabled();
+        OffsetDateTime meetAt = request.meetAt() != null ? request.meetAt() : gathering.getMeetAt();
+
+        GatheringCategory parsedCategory = parseCategory(request.category());
+        GatheringCategory category = parsedCategory != null ? parsedCategory : gathering.getCategory();
+
+        short maxMembers = gathering.getMaxMembers();
+        if (request.maxMembers() != null) {
+            if (request.maxMembers() < gathering.getCurrentMembers()) {
+                // 현재 참여 인원보다 적게 줄일 수 없음
+                throw new BusinessException(ErrorCode.INVALID_REQUEST);
+            }
+            maxMembers = request.maxMembers().shortValue();
+        }
+
+        gathering.update(title, content, category, location, maxMembers, fusionEnabled, meetAt);
+
+        // 태그/이미지: 목록이 오면 전체 교체(availability와 동일 패턴)
+        if (request.tagIds() != null) {
+            gatheringTagRepository.deleteAllByGatheringId(gatheringId);
+            saveTags(gathering, request.tagIds());
+        }
+        if (request.imageUrls() != null) {
+            gatheringImageRepository.deleteAllByGatheringId(gatheringId);
+            saveImages(gathering, request.imageUrls());
+        }
+
+        return new GatheringUpdateResponse(gathering.getId(), gathering.getUpdatedAt());
     }
 
     @Transactional

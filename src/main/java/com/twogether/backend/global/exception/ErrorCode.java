@@ -124,6 +124,18 @@ public enum ErrorCode {
             "모임을 찾을 수 없습니다."
     ),
 
+    FORBIDDEN(
+            HttpStatus.FORBIDDEN,
+            "FORBIDDEN",
+            "권한이 없습니다."
+    ),
+
+    GATHERING_NOT_MODIFIABLE(
+            HttpStatus.CONFLICT,
+            "GATHERING_NOT_MODIFIABLE",
+            "모집 중인 모임만 수정/취소할 수 있습니다."
+    ),
+
     INTERNAL_SERVER_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "INTERNAL_SERVER_ERROR",

@@ -178,6 +178,30 @@ public class Gathering {
         this.updatedAt = OffsetDateTime.now();
     }
 
+    // --- 부분 수정 (권한/상태 검증은 서비스 계층에서 선수행) ---
+    // 전달값은 서비스에서 "null이면 기존값 유지"로 해석해 최종값으로 넘긴다.
+
+    public void update(
+            String title,
+            String content,
+            GatheringCategory category,
+            String location,
+            short maxMembers,
+            boolean fusionEnabled,
+            OffsetDateTime meetAt
+    ) {
+        validateMaxMembers(maxMembers);
+
+        this.title = title;
+        this.content = content;
+        this.category = category;
+        this.location = location;
+        this.maxMembers = maxMembers;
+        this.fusionEnabled = fusionEnabled;
+        this.meetAt = meetAt;
+        this.updatedAt = OffsetDateTime.now();
+    }
+
     // --- 상태 전이 (방장/모집중 등 사전 검증은 서비스 계층에서 수행) ---
 
     public void confirm() {
