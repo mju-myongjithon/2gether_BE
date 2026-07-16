@@ -11,6 +11,7 @@ import com.twogether.backend.gatheringapplication.dto.response.GatheringApplicat
 import com.twogether.backend.gatheringapplication.dto.response.GatheringApplicationResponse;
 import com.twogether.backend.gatheringapplication.dto.response.GatheringBriefResponse;
 import com.twogether.backend.gatheringapplication.dto.response.MyApplicationResponse;
+import com.twogether.backend.gatheringapplication.service.GatheringApplicationService;
 import com.twogether.backend.global.response.ApiResponse;
 import com.twogether.backend.global.response.PageResponse;
 import com.twogether.backend.tag.dto.response.HobbyTagResponse;
@@ -19,7 +20,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,32 +43,36 @@ import java.util.List;
 @RestController
 public class GatheringApplicationController {
 
+    private final GatheringApplicationService gatheringApplicationService;
+
+    public GatheringApplicationController(
+            GatheringApplicationService gatheringApplicationService
+    ) {
+        this.gatheringApplicationService = gatheringApplicationService;
+    }
+
     @Operation(
             summary = "모임 신청",
             description = """
-                    유저가 모집 중인 모임에 참여를 신청합니다.
+                    유저가 모집 중(RECRUITING)인 모임에 참여를 신청합니다.
 
-                    같은 모임에는 한 번만 신청할 수 있습니다.
-
-                    현재 Swagger 명세 단계에서는 실제 DB에 저장하지 않고
-                    더미 응답을 반환합니다.
+                    - 이미 참여 중(방장 포함)이면 409 ALREADY_MEMBER.
+                    - 활성 신청(대기/수락)이 있으면 409 DUPLICATE_APPLICATION. 거절(REJECTED) 후에는 재신청 가능.
+                    - 모집중이 아니면 409 GATHERING_NOT_RECRUITING, 없는 모임이면 404 GATHERING_NOT_FOUND.
                     """
     )
     @PostMapping("/api/gatherings/{gatheringId}/applications")
     public ResponseEntity<ApiResponse<GatheringApplicationCreateResponse>> applyToGathering(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long gatheringId,
-            @RequestBody GatheringApplicationCreateRequest request
+            @Valid @RequestBody GatheringApplicationCreateRequest request
     ) {
-        GatheringApplicationCreateResponse response = new GatheringApplicationCreateResponse(
-                1L,
-                gatheringId,
-                ApplicationStatus.PENDING,
-                OffsetDateTime.parse("2026-07-09T19:30:00+09:00")
-        );
+        GatheringApplicationCreateResponse response =
+                gatheringApplicationService.apply(jwt.getSubject(), gatheringId, request);
 
-        return ResponseEntity.ok(
-                ApiResponse.success("모임 신청이 완료되었습니다.", response)
-        );
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("모임 신청이 완료되었습니다.", response));
     }
 
     @Operation(

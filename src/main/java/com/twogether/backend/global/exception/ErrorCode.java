@@ -136,6 +136,24 @@ public enum ErrorCode {
             "모집 중인 모임만 수정/취소할 수 있습니다."
     ),
 
+    GATHERING_NOT_RECRUITING(
+            HttpStatus.CONFLICT,
+            "GATHERING_NOT_RECRUITING",
+            "모집이 마감된 모임입니다."
+    ),
+
+    DUPLICATE_APPLICATION(
+            HttpStatus.CONFLICT,
+            "DUPLICATE_APPLICATION",
+            "이미 신청한 모임입니다."
+    ),
+
+    ALREADY_MEMBER(
+            HttpStatus.CONFLICT,
+            "ALREADY_MEMBER",
+            "이미 참여 중인 모임입니다."
+    ),
+
     INTERNAL_SERVER_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "INTERNAL_SERVER_ERROR",
