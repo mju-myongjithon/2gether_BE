@@ -20,6 +20,8 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import com.twogether.backend.user.dto.request.IntroductionUpdateRequest;
 import org.springframework.web.bind.annotation.DeleteMapping;
+import com.twogether.backend.user.dto.response.UserProfileResponse;
+import org.springframework.web.bind.annotation.PathVariable;
 
 @Tag(
         name = "사용자 API",
@@ -218,6 +220,33 @@ public class UserController {
         return ResponseEntity.ok(
                 ApiResponse.success(
                         "회원 탈퇴가 완료되었습니다."
+                )
+        );
+    }
+
+    @Operation(
+            summary = "타 사용자 프로필 조회",
+            description = """
+                사용자 ID를 기준으로 다른 사용자의 공개 프로필을 조회합니다.
+
+                기본 프로필 정보와 관심사 태그,
+                스킬 태그를 함께 반환합니다.
+
+                실명, 학번, 인증 사용자 ID 등
+                개인정보는 반환하지 않습니다.
+                """
+    )
+    @GetMapping("/{userId}")
+    public ResponseEntity<ApiResponse<UserProfileResponse>> getUserProfile(
+            @PathVariable Long userId
+    ) {
+        UserProfileResponse response =
+                userService.getUserProfile(userId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "타 사용자 프로필 조회에 성공했습니다.",
+                        response
                 )
         );
     }

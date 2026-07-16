@@ -14,6 +14,9 @@ import com.twogether.backend.user.dto.response.MyProfileResponse;
 import com.twogether.backend.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.twogether.backend.tag.dto.response.UserTagsResponse;
+import com.twogether.backend.tag.service.TagService;
+import com.twogether.backend.user.dto.response.UserProfileResponse;
 
 import java.util.regex.Pattern;
 
@@ -32,17 +35,19 @@ public class UserService {
     private final DepartmentRepository departmentRepository;
     private final AvailabilityRepository availabilityRepository;
     private final UserTagRepository userTagRepository;
-
+    private final TagService tagService;
     public UserService(
             UserRepository userRepository,
             DepartmentRepository departmentRepository,
             AvailabilityRepository availabilityRepository,
-            UserTagRepository userTagRepository
+            UserTagRepository userTagRepository,
+            TagService tagService
     ) {
         this.userRepository = userRepository;
         this.departmentRepository = departmentRepository;
         this.availabilityRepository = availabilityRepository;
         this.userTagRepository = userTagRepository;
+        this.tagService = tagService;
     }
 
     /**
@@ -333,5 +338,57 @@ public class UserService {
         }
 
         return normalizedIntroduction;
+    }
+
+    /**
+     * 사용자 ID를 기준으로 다른 사용자의 공개 프로필과
+     * 관심사/스킬 태그를 함께 조회합니다.
+     */
+    public UserProfileResponse getUserProfile(
+            Long userId
+    ) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() ->
+                        new BusinessException(
+                                ErrorCode.USER_NOT_FOUND
+                        )
+                );
+
+        String departmentName = null;
+        String campus = null;
+
+        if (user.getDepartmentId() != null) {
+            Department department =
+                    departmentRepository
+                            .findById(user.getDepartmentId())
+                            .orElse(null);
+
+            if (department != null) {
+                departmentName =
+                        department.getName();
+
+                campus =
+                        department.getCollege()
+                                .getCampus()
+                                .name();
+            }
+        }
+
+        UserTagsResponse tags =
+                tagService.getUserTags(userId);
+
+        return new UserProfileResponse(
+                user.getId(),
+                user.getNickname(),
+                user.getAge(),
+                user.getDepartmentId(),
+                departmentName,
+                campus,
+                user.getPreferredRegion(),
+                user.getIntroduction(),
+                user.getProfileImageUrl(),
+                tags.hobbyTags(),
+                tags.skillTags()
+        );
     }
 }
