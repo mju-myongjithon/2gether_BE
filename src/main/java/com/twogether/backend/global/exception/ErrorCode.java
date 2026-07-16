@@ -112,6 +112,34 @@ public enum ErrorCode {
             "중복된 가용 일정이 포함되어 있습니다."
     ),
 
+    /*
+     * 요청 body에 tagIds가 없거나 null인 경우
+     */
+    INVALID_TAG_REQUEST(
+            HttpStatus.BAD_REQUEST,
+            "INVALID_TAG_REQUEST",
+            "태그 목록은 null일 수 없습니다."
+    ),
+
+    /*
+     * 요청한 태그 ID 중 DB에 존재하지 않는 태그가 있는 경우
+     */
+    TAG_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "TAG_NOT_FOUND",
+            "요청한 태그를 찾을 수 없습니다."
+    ),
+
+    /*
+     * 취미 태그 API에 기술 태그를 보내거나,
+     * 기술 태그 API에 취미 태그를 보낸 경우
+     */
+    INVALID_TAG_TYPE(
+            HttpStatus.BAD_REQUEST,
+            "INVALID_TAG_TYPE",
+            "요청한 태그 유형이 올바르지 않습니다."
+    ),
+
     INTERNAL_SERVER_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "INTERNAL_SERVER_ERROR",
