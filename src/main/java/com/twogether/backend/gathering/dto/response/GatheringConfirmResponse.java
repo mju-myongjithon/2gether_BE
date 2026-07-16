@@ -17,7 +17,7 @@ public record GatheringConfirmResponse(
         @Schema(description = "확정 일시", example = "2026-07-09T20:20:00+09:00")
         OffsetDateTime confirmedAt,
 
-        @Schema(description = "자동 생성된 그룹 채팅방 ID", example = "10")
+        @Schema(description = "자동 생성된 그룹 채팅방 ID (채팅 도메인 구축 전까지는 null)", example = "10")
         Long chatRoomId
 
 ) {
