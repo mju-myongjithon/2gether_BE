@@ -87,38 +87,25 @@ public class GatheringController {
             description = """
                     카테고리, 상태, 검색어 기준으로 모임 목록을 조회합니다.
 
-                    페이지네이션은 page=0, size=20 방식을 기본으로 합니다.
+                    - category: 모임 카테고리 enum 값(STUDY, HOBBY, HACKATHON, PROJECT, NETWORKING). 미지정 시 전체.
+                    - status: 저장 상태 enum 값(RECRUITING, CONFIRMED, COMPLETED, CANCELED). 미지정 시 전체.
+                    - keyword: 제목/내용 부분 일치 검색(대소문자 무시).
+                    - 정렬은 최신순(created_at DESC) 고정, 페이지네이션은 page=0, size=20 기본.
 
-                    현재 Swagger 명세 단계에서는 더미 모임 목록을 반환합니다.
+                    각 항목에는 태그 목록과 화면 표시 상태(displayStatus)가 포함됩니다.
+                    잘못된 category/status 값이 오면 400 INVALID_REQUEST 를 반환합니다.
                     """
     )
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<GatheringSummaryResponse>>> getGatherings(
-            @Parameter(description = "모임 카테고리") @RequestParam(required = false) String category,
-            @Parameter(description = "모임 상태") @RequestParam(required = false) GatheringStatus status,
+            @Parameter(description = "모임 카테고리 enum 값", example = "HACKATHON") @RequestParam(required = false) String category,
+            @Parameter(description = "모임 저장 상태 enum 값", example = "RECRUITING") @RequestParam(required = false) String status,
             @Parameter(description = "제목/내용 검색어") @RequestParam(required = false) String keyword,
             @Parameter(description = "페이지 번호") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "20") int size
     ) {
-        HostSummaryResponse host = new HostSummaryResponse(
-                1L, "인준", "컴퓨터공학과", "NATURAL"
-        );
-
-        GatheringSummaryResponse summary = new GatheringSummaryResponse(
-                1L,
-                "인문X자연 해커톤 팀 모집",
-                "해커톤",
-                "자연캠 명진당",
-                6,
-                2,
-                true,
-                GatheringStatus.RECRUITING,
-                OffsetDateTime.parse("2026-07-15T18:00:00+09:00"),
-                host
-        );
-
         PageResponse<GatheringSummaryResponse> response =
-                PageResponse.of(List.of(summary), page, size, 1);
+                gatheringService.getGatherings(category, status, keyword, page, size);
 
         return ResponseEntity.ok(
                 ApiResponse.success("모임 목록 조회에 성공했습니다.", response)
