@@ -10,7 +10,10 @@ import com.twogether.backend.gathering.domain.GatheringStatus;
 import com.twogether.backend.gathering.domain.GatheringTag;
 import com.twogether.backend.gathering.dto.request.GatheringCreateRequest;
 import com.twogether.backend.gathering.dto.response.GatheringCreateResponse;
+import com.twogether.backend.gathering.dto.response.GatheringDetailResponse;
 import com.twogether.backend.gathering.dto.response.GatheringSummaryResponse;
+import com.twogether.backend.gatheringapplication.domain.ApplicationStatus;
+import com.twogether.backend.gatheringmember.dto.response.GatheringMemberResponse;
 import com.twogether.backend.gathering.repository.GatheringImageRepository;
 import com.twogether.backend.gathering.repository.GatheringMemberRepository;
 import com.twogether.backend.gathering.repository.GatheringRepository;
@@ -37,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @Transactional(readOnly = true)
@@ -171,6 +175,99 @@ public class GatheringService {
     ) {
         List<Long> departmentIds = gatherings.stream()
                 .map(gathering -> gathering.getHost().getDepartmentId())
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        if (departmentIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return departmentRepository.findAllById(departmentIds).stream()
+                .collect(Collectors.toMap(Department::getId, Department::getName));
+    }
+
+    /**
+     * 모임 상세 조회.
+     *
+     * host(fetch join)·멤버(user fetch join)·태그·이미지를 조립한다.
+     * authUserId 가 null(비로그인)이거나 매칭 사용자가 없으면
+     * isHost/isMember 는 false, myApplicationStatus 는 null 이다.
+     *
+     * myApplicationStatus 는 신청(application) 도메인 구현(이슈8) 전까지 항상 null 이며,
+     * 해당 이슈에서 실제 조회로 대체한다.
+     */
+    public GatheringDetailResponse getGatheringDetail(
+            Long gatheringId,
+            String authUserId
+    ) {
+        Gathering gathering = gatheringRepository.findDetailById(gatheringId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.GATHERING_NOT_FOUND));
+
+        List<GatheringMember> members =
+                gatheringMemberRepository.findByGatheringIdWithUser(gatheringId);
+
+        Map<Long, String> departmentNameById = resolveDepartmentNames(gathering, members);
+
+        List<GatheringMemberResponse> memberResponses = members.stream()
+                .map(member -> new GatheringMemberResponse(
+                        member.getUser().getId(),
+                        member.getUser().getNickname(),
+                        member.getRole(),
+                        departmentNameById.get(member.getUser().getDepartmentId()),
+                        // 캠퍼스 비율 기능 제외 → campus 는 null 처리(설계 확정)
+                        null
+                ))
+                .toList();
+
+        List<String> tags = gatheringTagRepository
+                .findTagNamesByGatheringIds(List.of(gatheringId)).stream()
+                .map(GatheringTagName::getTagName)
+                .toList();
+
+        List<String> images = gatheringImageRepository
+                .findByGatheringIdOrderBySortOrderAsc(gatheringId).stream()
+                .map(GatheringImage::getImageUrl)
+                .toList();
+
+        boolean isHost = false;
+        boolean isMember = false;
+        if (authUserId != null) {
+            Long myUserId = userRepository.findByAuthUserId(authUserId)
+                    .map(User::getId)
+                    .orElse(null);
+            if (myUserId != null) {
+                isHost = gathering.isHost(myUserId);
+                isMember = gatheringMemberRepository
+                        .existsByGatheringIdAndUserId(gatheringId, myUserId);
+            }
+        }
+
+        // 신청(application) 도메인 미구현 → 이슈8에서 실제 조회로 대체
+        ApplicationStatus myApplicationStatus = null;
+
+        return GatheringDetailResponse.of(
+                gathering,
+                departmentNameById.get(gathering.getHost().getDepartmentId()),
+                memberResponses,
+                tags,
+                images,
+                myApplicationStatus,
+                isHost,
+                isMember,
+                OffsetDateTime.now()
+        );
+    }
+
+    private Map<Long, String> resolveDepartmentNames(
+            Gathering gathering,
+            List<GatheringMember> members
+    ) {
+        List<Long> departmentIds = Stream.concat(
+                        Stream.of(gathering.getHost()),
+                        members.stream().map(GatheringMember::getUser)
+                )
+                .map(User::getDepartmentId)
                 .filter(Objects::nonNull)
                 .distinct()
                 .toList();

@@ -118,6 +118,12 @@ public enum ErrorCode {
             "존재하지 않는 태그가 포함되어 있습니다."
     ),
 
+    GATHERING_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "GATHERING_NOT_FOUND",
+            "모임을 찾을 수 없습니다."
+    ),
+
     INTERNAL_SERVER_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "INTERNAL_SERVER_ERROR",
