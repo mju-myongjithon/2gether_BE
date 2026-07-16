@@ -1,6 +1,5 @@
 package com.twogether.backend.gathering.controller;
 
-import com.twogether.backend.gathering.domain.GatheringStatus;
 import com.twogether.backend.gathering.dto.request.GatheringCreateRequest;
 import com.twogether.backend.gathering.dto.request.GatheringUpdateRequest;
 import com.twogether.backend.gathering.dto.response.GatheringCancelResponse;
@@ -29,8 +28,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.time.OffsetDateTime;
 
 @Tag(
         name = "모임 API",
@@ -187,26 +184,23 @@ public class GatheringController {
     @Operation(
             summary = "모임 확정",
             description = """
-                    방장이 모집을 마감합니다.
+                    방장이 모집을 마감(확정)합니다. status = CONFIRMED 로 변경되고 confirmed_at 을 기록합니다.
 
-                    확정 시 status = CONFIRMED로 변경되고,
-                    그룹 채팅방이 자동 생성됩니다.
+                    그룹 채팅방 자동 생성은 채팅 도메인 구축 이후 연계 예정이며,
+                    현재 응답의 chatRoomId 는 null 입니다.
 
-                    현재 Swagger 명세 단계에서는 실제 DB에 반영하지 않고
-                    더미 응답을 반환합니다.
+                    방장이 아니면 403 FORBIDDEN, 모집중이 아니면 409 GATHERING_NOT_MODIFIABLE,
+                    없는 모임이면 404 GATHERING_NOT_FOUND.
                     """
     )
     @SecurityRequirement(name = "Bearer Authentication")
     @PostMapping("/{gatheringId}/confirm")
     public ResponseEntity<ApiResponse<GatheringConfirmResponse>> confirmGathering(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long gatheringId
     ) {
-        GatheringConfirmResponse response = new GatheringConfirmResponse(
-                gatheringId,
-                GatheringStatus.CONFIRMED,
-                OffsetDateTime.parse("2026-07-09T20:20:00+09:00"),
-                10L
-        );
+        GatheringConfirmResponse response =
+                gatheringService.confirm(jwt.getSubject(), gatheringId);
 
         return ResponseEntity.ok(
                 ApiResponse.success("모임이 확정되었습니다.", response)

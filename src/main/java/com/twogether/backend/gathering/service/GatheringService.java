@@ -11,6 +11,7 @@ import com.twogether.backend.gathering.domain.GatheringTag;
 import com.twogether.backend.gathering.dto.request.GatheringCreateRequest;
 import com.twogether.backend.gathering.dto.request.GatheringUpdateRequest;
 import com.twogether.backend.gathering.dto.response.GatheringCancelResponse;
+import com.twogether.backend.gathering.dto.response.GatheringConfirmResponse;
 import com.twogether.backend.gathering.dto.response.GatheringCreateResponse;
 import com.twogether.backend.gathering.dto.response.GatheringDetailResponse;
 import com.twogether.backend.gathering.dto.response.GatheringSummaryResponse;
@@ -351,6 +352,44 @@ public class GatheringService {
      * 방장·모집중(RECRUITING) 조건을 검증한 뒤 status = CANCELED 로 전이하고
      * canceled_at 을 기록한다(물리 삭제 아님).
      */
+    /**
+     * 모임 확정.
+     *
+     * 방장·모집중(RECRUITING) 조건을 검증한 뒤 status = CONFIRMED 로 전이하고
+     * confirmed_at 을 기록한다.
+     *
+     * 그룹 채팅방 생성/멤버 등록/시스템 메시지는 채팅 도메인 구축(이슈 C1) 이후 연계 예정이며,
+     * 현재는 chatRoomId 를 null 로 반환한다.
+     */
+    @Transactional
+    public GatheringConfirmResponse confirm(
+            String authUserId,
+            Long gatheringId
+    ) {
+        User me = userRepository.findByAuthUserId(authUserId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        Gathering gathering = gatheringRepository.findById(gatheringId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.GATHERING_NOT_FOUND));
+
+        if (!gathering.isHost(me.getId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+        if (!gathering.isRecruiting()) {
+            throw new BusinessException(ErrorCode.GATHERING_NOT_MODIFIABLE);
+        }
+
+        gathering.confirm();
+
+        // 채팅방 생성은 chat 도메인 구축 후 연계 → 현재 chatRoomId=null
+        return new GatheringConfirmResponse(
+                gathering.getId(),
+                gathering.getStatus(),
+                gathering.getConfirmedAt(),
+                null
+        );
+    }
+
     @Transactional
     public GatheringCancelResponse cancel(
             String authUserId,
