@@ -1,6 +1,9 @@
 package com.twogether.backend.gathering.repository;
 
 import com.twogether.backend.gathering.domain.GatheringMember;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,6 +16,13 @@ public interface GatheringMemberRepository
     boolean existsByGatheringIdAndUserId(
             Long gatheringId,
             Long userId
+    );
+
+    // 멤버 목록(페이징): 사용자(user)를 함께 로딩(N+1 회피). 정렬은 Pageable 로 주입.
+    @EntityGraph(attributePaths = "user")
+    Page<GatheringMember> findByGatheringId(
+            Long gatheringId,
+            Pageable pageable
     );
 
     /**
