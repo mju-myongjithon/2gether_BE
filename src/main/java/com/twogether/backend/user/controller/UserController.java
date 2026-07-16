@@ -236,6 +236,7 @@ public class UserController {
                 개인정보는 반환하지 않습니다.
                 """
     )
+    @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/{userId}")
     public ResponseEntity<ApiResponse<UserProfileResponse>> getUserProfile(
             @PathVariable Long userId

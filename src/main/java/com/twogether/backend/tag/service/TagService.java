@@ -15,8 +15,11 @@ import com.twogether.backend.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional(readOnly = true)
@@ -40,11 +43,8 @@ public class TagService {
      * 선택 가능한 전체 취미 태그를 조회합니다.
      */
     public List<HobbyTagResponse> getHobbyTags() {
-
         return tagRepository
-                .findAllByTypeOrderByIdAsc(
-                        TagType.HOBBY
-                )
+                .findAllByTypeOrderByIdAsc(TagType.HOBBY)
                 .stream()
                 .map(tag ->
                         new HobbyTagResponse(
@@ -56,14 +56,11 @@ public class TagService {
     }
 
     /**
-     * 선택 가능한 전체 기술 태그를 조회합니다.
+     * 선택 가능한 전체 스킬 태그를 조회합니다.
      */
     public List<SkillTagResponse> getSkillTags() {
-
         return tagRepository
-                .findAllByTypeOrderByIdAsc(
-                        TagType.SKILL
-                )
+                .findAllByTypeOrderByIdAsc(TagType.SKILL)
                 .stream()
                 .map(tag ->
                         new SkillTagResponse(
@@ -75,7 +72,8 @@ public class TagService {
     }
 
     /**
-     * 현재 로그인한 사용자의 취미 태그를 전체 교체합니다.
+     * 현재 로그인한 사용자의 취미 태그를
+     * 요청으로 받은 태그 목록으로 전체 교체합니다.
      */
     @Transactional
     public void updateMyHobbyTags(
@@ -90,7 +88,8 @@ public class TagService {
     }
 
     /**
-     * 현재 로그인한 사용자의 기술 태그를 전체 교체합니다.
+     * 현재 로그인한 사용자의 스킬 태그를
+     * 요청으로 받은 태그 목록으로 전체 교체합니다.
      */
     @Transactional
     public void updateMySkillTags(
@@ -105,7 +104,7 @@ public class TagService {
     }
 
     /**
-     * 특정 사용자가 선택한 취미 및 기술 태그를 조회합니다.
+     * 특정 사용자가 선택한 취미/스킬 태그를 조회합니다.
      */
     public UserTagsResponse getUserTags(
             Long userId
@@ -126,8 +125,7 @@ public class TagService {
                 userTags.stream()
                         .map(UserTag::getTag)
                         .filter(tag ->
-                                tag.getType()
-                                        == TagType.HOBBY
+                                tag.getType() == TagType.HOBBY
                         )
                         .map(tag ->
                                 new HobbyTagResponse(
@@ -141,8 +139,7 @@ public class TagService {
                 userTags.stream()
                         .map(UserTag::getTag)
                         .filter(tag ->
-                                tag.getType()
-                                        == TagType.SKILL
+                                tag.getType() == TagType.SKILL
                         )
                         .map(tag ->
                                 new SkillTagResponse(
@@ -159,13 +156,20 @@ public class TagService {
     }
 
     /**
-     * 요청받은 태그 목록으로 사용자의 기존 태그를 전체 교체합니다.
+     * 특정 종류의 사용자 태그를 전체 삭제한 뒤
+     * 요청받은 태그 목록으로 다시 저장합니다.
      */
     private void replaceUserTags(
             String authUserId,
             List<Long> tagIds,
             TagType expectedType
     ) {
+        if (tagIds == null) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_TAG_REQUEST
+            );
+        }
+
         User user = userRepository
                 .findByAuthUserId(authUserId)
                 .orElseThrow(() ->
@@ -174,69 +178,88 @@ public class TagService {
                         )
                 );
 
-        if (tagIds == null) {
-            throw new BusinessException(
-                    ErrorCode.INVALID_TAG_REQUEST
-            );
-        }
-
         /*
-         * 중복 태그 ID를 제거합니다.
+         * 같은 태그 ID가 요청에 여러 번 들어와도
+         * 한 번만 저장하도록 중복을 제거합니다.
          *
-         * 예: [1, 1, 2] → [1, 2]
+         * LinkedHashSet을 사용해 요청 순서는 유지합니다.
          */
-        Set<Long> uniqueTagIds =
-                Set.copyOf(tagIds);
+        List<Long> distinctTagIds =
+                new LinkedHashSet<>(tagIds)
+                        .stream()
+                        .toList();
 
-        List<Tag> tags =
+        List<Tag> foundTags =
                 tagRepository.findAllById(
-                        uniqueTagIds
+                        distinctTagIds
                 );
 
         /*
-         * 요청한 ID 중 존재하지 않는 태그가 있는지 확인합니다.
+         * 요청한 ID 개수와 실제 조회된 태그 개수가 다르면
+         * 존재하지 않는 태그 ID가 포함된 것입니다.
          */
-        if (tags.size() != uniqueTagIds.size()) {
+        if (foundTags.size()
+                != distinctTagIds.size()) {
+
             throw new BusinessException(
                     ErrorCode.TAG_NOT_FOUND
             );
         }
 
-        /*
-         * 취미 API에는 취미 태그만,
-         * 기술 API에는 기술 태그만 요청할 수 있습니다.
-         */
-        boolean invalidTypeExists =
-                tags.stream()
+        boolean invalidTagTypeExists =
+                foundTags.stream()
                         .anyMatch(tag ->
                                 tag.getType()
                                         != expectedType
                         );
 
-        if (invalidTypeExists) {
+        if (invalidTagTypeExists) {
             throw new BusinessException(
                     ErrorCode.INVALID_TAG_TYPE
             );
         }
 
         /*
-         * 기존에 선택한 같은 유형의 태그를 모두 삭제합니다.
+         * findAllById()의 결과 순서는 보장되지 않으므로,
+         * 요청으로 전달된 tagIds 순서대로 다시 정렬합니다.
+         */
+        Map<Long, Tag> tagById =
+                foundTags.stream()
+                        .collect(
+                                Collectors.toMap(
+                                        Tag::getId,
+                                        Function.identity()
+                                )
+                        );
+
+        List<Tag> orderedTags =
+                distinctTagIds.stream()
+                        .map(tagById::get)
+                        .toList();
+
+        /*
+         * 기존 태그를 JPQL 벌크 DELETE로 즉시 삭제합니다.
+         *
+         * 기존 태그 중 일부를 다시 선택했을 때
+         * DELETE보다 INSERT가 먼저 실행되면서
+         * (user_id, tag_id) UNIQUE 제약조건을 위반하는
+         * 문제를 방지합니다.
          */
         userTagRepository
-                .deleteAllByUser_IdAndTag_Type(
+                .deleteAllByUserIdAndTagType(
                         user.getId(),
                         expectedType
                 );
 
         /*
-         * 빈 배열이라면 기존 태그 삭제까지만 수행합니다.
+         * 빈 배열이면 기존 태그 삭제까지만 하고 종료합니다.
          */
-        if (tags.isEmpty()) {
+        if (orderedTags.isEmpty()) {
             return;
         }
 
         List<UserTag> newUserTags =
-                tags.stream()
+                orderedTags.stream()
                         .map(tag ->
                                 new UserTag(
                                         user,
@@ -245,8 +268,7 @@ public class TagService {
                         )
                         .toList();
 
-        userTagRepository.saveAll(
-                newUserTags
-        );
+        userTagRepository
+                .saveAllAndFlush(newUserTags);
     }
 }
