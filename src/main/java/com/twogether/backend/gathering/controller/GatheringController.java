@@ -162,24 +162,22 @@ public class GatheringController {
     @Operation(
             summary = "모임 취소",
             description = """
-                    모집 중인 모임만 취소할 수 있습니다.
+                    모집 중(RECRUITING)인 모임을 방장이 취소합니다.
 
-                    물리 삭제가 아니라 status = CANCELED로 변경합니다.
+                    물리 삭제가 아니라 status = CANCELED 로 변경하고 canceled_at 을 기록합니다.
 
-                    현재 Swagger 명세 단계에서는 실제 DB에 반영하지 않고
-                    더미 응답을 반환합니다.
+                    방장이 아니면 403 FORBIDDEN, 모집중이 아니면 409 GATHERING_NOT_MODIFIABLE,
+                    없는 모임이면 404 GATHERING_NOT_FOUND.
                     """
     )
     @SecurityRequirement(name = "Bearer Authentication")
     @PostMapping("/{gatheringId}/cancel")
     public ResponseEntity<ApiResponse<GatheringCancelResponse>> cancelGathering(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long gatheringId
     ) {
-        GatheringCancelResponse response = new GatheringCancelResponse(
-                gatheringId,
-                GatheringStatus.CANCELED,
-                OffsetDateTime.parse("2026-07-09T20:10:00+09:00")
-        );
+        GatheringCancelResponse response =
+                gatheringService.cancel(jwt.getSubject(), gatheringId);
 
         return ResponseEntity.ok(
                 ApiResponse.success("모임이 취소되었습니다.", response)

@@ -10,6 +10,7 @@ import com.twogether.backend.gathering.domain.GatheringStatus;
 import com.twogether.backend.gathering.domain.GatheringTag;
 import com.twogether.backend.gathering.dto.request.GatheringCreateRequest;
 import com.twogether.backend.gathering.dto.request.GatheringUpdateRequest;
+import com.twogether.backend.gathering.dto.response.GatheringCancelResponse;
 import com.twogether.backend.gathering.dto.response.GatheringCreateResponse;
 import com.twogether.backend.gathering.dto.response.GatheringDetailResponse;
 import com.twogether.backend.gathering.dto.response.GatheringSummaryResponse;
@@ -342,6 +343,39 @@ public class GatheringService {
         }
 
         return new GatheringUpdateResponse(gathering.getId(), gathering.getUpdatedAt());
+    }
+
+    /**
+     * 모임 취소(소프트).
+     *
+     * 방장·모집중(RECRUITING) 조건을 검증한 뒤 status = CANCELED 로 전이하고
+     * canceled_at 을 기록한다(물리 삭제 아님).
+     */
+    @Transactional
+    public GatheringCancelResponse cancel(
+            String authUserId,
+            Long gatheringId
+    ) {
+        User me = userRepository.findByAuthUserId(authUserId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        Gathering gathering = gatheringRepository.findById(gatheringId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.GATHERING_NOT_FOUND));
+
+        if (!gathering.isHost(me.getId())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+        if (!gathering.isRecruiting()) {
+            throw new BusinessException(ErrorCode.GATHERING_NOT_MODIFIABLE);
+        }
+
+        gathering.cancel();
+
+        return new GatheringCancelResponse(
+                gathering.getId(),
+                gathering.getStatus(),
+                gathering.getCanceledAt()
+        );
     }
 
     @Transactional
