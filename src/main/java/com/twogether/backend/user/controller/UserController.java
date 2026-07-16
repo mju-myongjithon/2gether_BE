@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import com.twogether.backend.user.dto.request.IntroductionUpdateRequest;
+import org.springframework.web.bind.annotation.DeleteMapping;
 
 @Tag(
         name = "사용자 API",
@@ -189,6 +190,34 @@ public class UserController {
         return ResponseEntity.ok(
                 ApiResponse.success(
                         "자기소개 수정에 성공했습니다."
+                )
+        );
+    }
+
+    @Operation(
+            summary = "회원 탈퇴",
+            description = """
+                현재 로그인한 사용자의 서비스 데이터를 삭제합니다.
+
+                사용자의 가용 일정과 선택 태그를 먼저 삭제한 뒤,
+                users 테이블의 사용자 정보를 삭제합니다.
+
+                이번 기능에서는 백엔드 DB 데이터만 삭제하며,
+                Supabase Auth 로그인 계정은 삭제하지 않습니다.
+                """
+    )
+    @SecurityRequirement(name = "Bearer Authentication")
+    @DeleteMapping("/me")
+    public ResponseEntity<ApiResponse<Void>> withdraw(
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        userService.withdraw(
+                jwt.getSubject()
+        );
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "회원 탈퇴가 완료되었습니다."
                 )
         );
     }
