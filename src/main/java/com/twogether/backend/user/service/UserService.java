@@ -1,7 +1,11 @@
 package com.twogether.backend.user.service;
 
+import com.twogether.backend.availability.repository.AvailabilityRepository;
+import com.twogether.backend.department.domain.Department;
+import com.twogether.backend.department.repository.DepartmentRepository;
 import com.twogether.backend.global.exception.BusinessException;
 import com.twogether.backend.global.exception.ErrorCode;
+import com.twogether.backend.tag.repository.UserTagRepository;
 import com.twogether.backend.user.domain.User;
 import com.twogether.backend.user.dto.request.IntroductionUpdateRequest;
 import com.twogether.backend.user.dto.request.OnboardingUpdateRequest;
@@ -10,9 +14,8 @@ import com.twogether.backend.user.dto.response.MyProfileResponse;
 import com.twogether.backend.user.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.twogether.backend.department.repository.DepartmentRepository;
+
 import java.util.regex.Pattern;
-import com.twogether.backend.department.domain.Department;
 
 @Service
 @Transactional(readOnly = true)
@@ -27,13 +30,19 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final DepartmentRepository departmentRepository;
+    private final AvailabilityRepository availabilityRepository;
+    private final UserTagRepository userTagRepository;
 
     public UserService(
             UserRepository userRepository,
-            DepartmentRepository departmentRepository
+            DepartmentRepository departmentRepository,
+            AvailabilityRepository availabilityRepository,
+            UserTagRepository userTagRepository
     ) {
         this.userRepository = userRepository;
         this.departmentRepository = departmentRepository;
+        this.availabilityRepository = availabilityRepository;
+        this.userTagRepository = userTagRepository;
     }
 
     /**
@@ -41,7 +50,9 @@ public class UserService {
      * 등록된 회원이 없으면 기본 상태의 신규 회원을 생성합니다.
      */
     @Transactional
-    public User findOrCreateUser(String authUserId) {
+    public User findOrCreateUser(
+            String authUserId
+    ) {
         return userRepository.findByAuthUserId(authUserId)
                 .orElseGet(() ->
                         userRepository.save(
@@ -144,10 +155,6 @@ public class UserService {
             );
         }
 
-        /*
-         * 프론트에서 전달한 학과 ID가
-         * 실제 departments 테이블에 존재하는지 확인한다.
-         */
         boolean departmentExists =
                 request.departmentId() != null
                         && departmentRepository.existsById(
@@ -257,6 +264,32 @@ public class UserService {
                 user.isProfileCompleted()
         );
     }
+
+    /**
+     * 현재 로그인한 사용자의 서비스 데이터를 삭제합니다.
+     *
+     * 이번 구현에서는 백엔드 DB 데이터만 삭제하며,
+     * Supabase Auth 계정은 삭제하지 않습니다.
+     */
+    @Transactional
+    public void withdraw(
+            String authUserId
+    ) {
+        User user = findUser(authUserId);
+
+        availabilityRepository
+                .deleteAllByUserAuthUserId(
+                        authUserId
+                );
+
+        userTagRepository
+                .deleteAllByUser_Id(
+                        user.getId()
+                );
+
+        userRepository.delete(user);
+    }
+
     /**
      * Supabase 사용자 ID를 기준으로 사용자를 조회합니다.
      */
