@@ -1,5 +1,6 @@
 package com.twogether.backend.gathering.dto.response;
 
+import com.twogether.backend.gathering.domain.Gathering;
 import com.twogether.backend.gathering.domain.GatheringStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -24,4 +25,14 @@ public record GatheringCreateResponse(
         OffsetDateTime createdAt
 
 ) {
+
+    public static GatheringCreateResponse from(Gathering gathering) {
+        return new GatheringCreateResponse(
+                gathering.getId(),
+                gathering.getHost().getId(),
+                gathering.getTitle(),
+                gathering.getStatus(),
+                gathering.getCreatedAt()
+        );
+    }
 }

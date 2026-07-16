@@ -11,6 +11,7 @@ import com.twogether.backend.gathering.dto.response.GatheringDetailResponse;
 import com.twogether.backend.gathering.dto.response.GatheringSummaryResponse;
 import com.twogether.backend.gathering.dto.response.GatheringUpdateResponse;
 import com.twogether.backend.gathering.dto.response.HostSummaryResponse;
+import com.twogether.backend.gathering.service.GatheringService;
 import com.twogether.backend.gatheringapplication.domain.ApplicationStatus;
 import com.twogether.backend.gatheringmember.domain.GatheringMemberRole;
 import com.twogether.backend.gatheringmember.dto.response.GatheringMemberResponse;
@@ -20,7 +21,11 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -41,33 +46,40 @@ import java.util.List;
 @RequestMapping("/api/gatherings")
 public class GatheringController {
 
+    private final GatheringService gatheringService;
+
+    public GatheringController(
+            GatheringService gatheringService
+    ) {
+        this.gatheringService = gatheringService;
+    }
+
     @Operation(
             summary = "모임 생성",
             description = """
                     방장이 직접 모임을 생성합니다.
 
-                    생성자는 자동으로 gathering_member에 HOST로 등록됩니다.
+                    생성자는 자동으로 gathering_member에 HOST로 등록되며,
+                    current_members는 1(방장)로 시작합니다.
 
-                    현재 Swagger 명세 단계에서는 실제 DB에 저장하지 않고
-                    더미 응답을 반환합니다.
+                    태그 ID와 이미지 URL(최대 5장)을 함께 등록할 수 있습니다.
+                    존재하지 않는 태그 ID가 포함되면 INVALID_TAG로 거절됩니다.
                     """
     )
     @SecurityRequirement(name = "Bearer Authentication")
     @PostMapping
     public ResponseEntity<ApiResponse<GatheringCreateResponse>> createGathering(
-            @RequestBody GatheringCreateRequest request
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody GatheringCreateRequest request
     ) {
-        GatheringCreateResponse response = new GatheringCreateResponse(
-                1L,
-                1L,
-                request.title(),
-                GatheringStatus.RECRUITING,
-                OffsetDateTime.parse("2026-07-09T19:00:00+09:00")
-        );
+        String authUserId = jwt.getSubject();
 
-        return ResponseEntity.ok(
-                ApiResponse.success("모임이 생성되었습니다.", response)
-        );
+        GatheringCreateResponse response =
+                gatheringService.create(authUserId, request);
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(ApiResponse.success("모임이 생성되었습니다.", response));
     }
 
     @Operation(

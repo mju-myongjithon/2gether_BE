@@ -112,6 +112,12 @@ public enum ErrorCode {
             "중복된 가용 일정이 포함되어 있습니다."
     ),
 
+    INVALID_TAG(
+            HttpStatus.BAD_REQUEST,
+            "INVALID_TAG",
+            "존재하지 않는 태그가 포함되어 있습니다."
+    ),
+
     INTERNAL_SERVER_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "INTERNAL_SERVER_ERROR",
