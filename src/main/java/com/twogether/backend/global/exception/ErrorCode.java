@@ -154,6 +154,24 @@ public enum ErrorCode {
             "이미 참여 중인 모임입니다."
     ),
 
+    APPLICATION_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "APPLICATION_NOT_FOUND",
+            "신청을 찾을 수 없습니다."
+    ),
+
+    APPLICATION_ALREADY_PROCESSED(
+            HttpStatus.CONFLICT,
+            "APPLICATION_ALREADY_PROCESSED",
+            "이미 처리된 신청입니다."
+    ),
+
+    CAPACITY_EXCEEDED(
+            HttpStatus.CONFLICT,
+            "CAPACITY_EXCEEDED",
+            "모집 정원을 초과했습니다."
+    ),
+
     INTERNAL_SERVER_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "INTERNAL_SERVER_ERROR",
