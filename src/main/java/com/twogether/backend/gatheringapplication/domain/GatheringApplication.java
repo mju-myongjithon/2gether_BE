@@ -114,6 +114,25 @@ public class GatheringApplication {
         }
     }
 
+    // --- 상태 전이 (방장 권한/정원 등 사전 검증은 서비스 계층에서 수행) ---
+
+    public boolean isPending() {
+        return this.status == ApplicationStatus.PENDING;
+    }
+
+    public void accept() {
+        this.status = ApplicationStatus.ACCEPTED;
+        this.reviewedAt = OffsetDateTime.now();
+    }
+
+    public void reject(
+            String rejectReason
+    ) {
+        this.status = ApplicationStatus.REJECTED;
+        this.rejectReason = rejectReason;
+        this.reviewedAt = OffsetDateTime.now();
+    }
+
     public Long getId() {
         return id;
     }

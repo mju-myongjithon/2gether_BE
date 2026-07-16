@@ -4,7 +4,6 @@ import com.twogether.backend.gathering.domain.GatheringStatus;
 import com.twogether.backend.gatheringapplication.domain.ApplicationStatus;
 import com.twogether.backend.gatheringapplication.dto.request.GatheringApplicationCreateRequest;
 import com.twogether.backend.gatheringapplication.dto.request.GatheringApplicationRejectRequest;
-import com.twogether.backend.gatheringapplication.dto.response.ApplicantResponse;
 import com.twogether.backend.gatheringapplication.dto.response.GatheringApplicationAcceptResponse;
 import com.twogether.backend.gatheringapplication.dto.response.GatheringApplicationCreateResponse;
 import com.twogether.backend.gatheringapplication.dto.response.GatheringApplicationRejectResponse;
@@ -14,8 +13,6 @@ import com.twogether.backend.gatheringapplication.dto.response.MyApplicationResp
 import com.twogether.backend.gatheringapplication.service.GatheringApplicationService;
 import com.twogether.backend.global.response.ApiResponse;
 import com.twogether.backend.global.response.PageResponse;
-import com.twogether.backend.tag.dto.response.HobbyTagResponse;
-import com.twogether.backend.tag.dto.response.SkillTagResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -78,38 +75,22 @@ public class GatheringApplicationController {
     @Operation(
             summary = "특정 모임의 신청자 목록 조회",
             description = """
-                    방장만 조회할 수 있습니다.
+                    방장만 조회할 수 있습니다. status 로 신청 상태(PENDING/ACCEPTED/REJECTED)를 필터링할 수 있고,
+                    미지정 시 전체를 신청 최신순으로 반환합니다. 페이지네이션 기본은 page=0, size=20.
 
-                    페이지네이션은 page=0, size=20 방식을 기본으로 합니다.
-
-                    현재 Swagger 명세 단계에서는 더미 신청자 목록을 반환합니다.
+                    방장이 아니면 403 FORBIDDEN, 없는 모임이면 404 GATHERING_NOT_FOUND.
                     """
     )
     @GetMapping("/api/gatherings/{gatheringId}/applications")
     public ResponseEntity<ApiResponse<PageResponse<GatheringApplicationResponse>>> getGatheringApplications(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long gatheringId,
+            @Parameter(description = "신청 상태 필터 enum 값", example = "PENDING") @RequestParam(required = false) String status,
             @Parameter(description = "페이지 번호") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "20") int size
     ) {
-        ApplicantResponse applicant = new ApplicantResponse(
-                2L,
-                "기획러",
-                "경영학과",
-                "HUMANITIES",
-                List.of(new HobbyTagResponse(3L, "맛집 탐방")),
-                List.of(new SkillTagResponse(1L, "기획"), new SkillTagResponse(2L, "발표"))
-        );
-
-        GatheringApplicationResponse response = new GatheringApplicationResponse(
-                1L,
-                ApplicationStatus.PENDING,
-                "협업 경험을 쌓고 싶습니다.",
-                OffsetDateTime.parse("2026-07-09T19:30:00+09:00"),
-                applicant
-        );
-
         PageResponse<GatheringApplicationResponse> pageResponse =
-                PageResponse.of(List.of(response), page, size, 1);
+                gatheringApplicationService.getApplications(jwt.getSubject(), gatheringId, status, page, size);
 
         return ResponseEntity.ok(
                 ApiResponse.success("신청자 목록 조회에 성공했습니다.", pageResponse)
@@ -158,23 +139,19 @@ public class GatheringApplicationController {
             description = """
                     방장만 신청을 수락할 수 있습니다.
 
-                    수락 시 gathering_application.status = ACCEPTED가 되고
-                    gathering_member가 생성됩니다.
+                    수락 시 status = ACCEPTED 로 바뀌고 gathering_member 가 생성되며 current_members 가 증가합니다(한 트랜잭션).
 
-                    현재 Swagger 명세 단계에서는 실제 DB에 반영하지 않고
-                    더미 응답을 반환합니다.
+                    방장 아님 403 FORBIDDEN, 이미 처리된 신청 409 APPLICATION_ALREADY_PROCESSED,
+                    정원 초과 409 CAPACITY_EXCEEDED, 없는 신청 404 APPLICATION_NOT_FOUND.
                     """
     )
     @PostMapping("/api/gathering-applications/{applicationId}/accept")
     public ResponseEntity<ApiResponse<GatheringApplicationAcceptResponse>> acceptApplication(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long applicationId
     ) {
-        GatheringApplicationAcceptResponse response = new GatheringApplicationAcceptResponse(
-                applicationId,
-                ApplicationStatus.ACCEPTED,
-                5L,
-                OffsetDateTime.parse("2026-07-09T19:50:00+09:00")
-        );
+        GatheringApplicationAcceptResponse response =
+                gatheringApplicationService.accept(jwt.getSubject(), applicationId);
 
         return ResponseEntity.ok(
                 ApiResponse.success("신청을 수락했습니다.", response)
@@ -184,25 +161,20 @@ public class GatheringApplicationController {
     @Operation(
             summary = "신청 거절",
             description = """
-                    방장만 신청을 거절할 수 있습니다.
+                    방장만 신청을 거절할 수 있습니다. 거절 사유를 저장하며 신청 기록은 남습니다(status = REJECTED).
 
-                    거절되어도 신청 기록은 남습니다.
-
-                    현재 Swagger 명세 단계에서는 실제 DB에 반영하지 않고
-                    더미 응답을 반환합니다.
+                    방장 아님 403 FORBIDDEN, 이미 처리된 신청 409 APPLICATION_ALREADY_PROCESSED,
+                    없는 신청 404 APPLICATION_NOT_FOUND.
                     """
     )
     @PostMapping("/api/gathering-applications/{applicationId}/reject")
     public ResponseEntity<ApiResponse<GatheringApplicationRejectResponse>> rejectApplication(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long applicationId,
-            @RequestBody GatheringApplicationRejectRequest request
+            @Valid @RequestBody GatheringApplicationRejectRequest request
     ) {
-        GatheringApplicationRejectResponse response = new GatheringApplicationRejectResponse(
-                applicationId,
-                ApplicationStatus.REJECTED,
-                request.rejectReason(),
-                OffsetDateTime.parse("2026-07-09T19:55:00+09:00")
-        );
+        GatheringApplicationRejectResponse response =
+                gatheringApplicationService.reject(jwt.getSubject(), applicationId, request);
 
         return ResponseEntity.ok(
                 ApiResponse.success("신청을 거절했습니다.", response)
