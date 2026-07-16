@@ -3,18 +3,13 @@ package com.twogether.backend.gathering.controller;
 import com.twogether.backend.gathering.domain.GatheringStatus;
 import com.twogether.backend.gathering.dto.request.GatheringCreateRequest;
 import com.twogether.backend.gathering.dto.request.GatheringUpdateRequest;
-import com.twogether.backend.gathering.dto.response.CampusRatioResponse;
 import com.twogether.backend.gathering.dto.response.GatheringCancelResponse;
 import com.twogether.backend.gathering.dto.response.GatheringConfirmResponse;
 import com.twogether.backend.gathering.dto.response.GatheringCreateResponse;
 import com.twogether.backend.gathering.dto.response.GatheringDetailResponse;
 import com.twogether.backend.gathering.dto.response.GatheringSummaryResponse;
 import com.twogether.backend.gathering.dto.response.GatheringUpdateResponse;
-import com.twogether.backend.gathering.dto.response.HostSummaryResponse;
 import com.twogether.backend.gathering.service.GatheringService;
-import com.twogether.backend.gatheringapplication.domain.ApplicationStatus;
-import com.twogether.backend.gatheringmember.domain.GatheringMemberRole;
-import com.twogether.backend.gatheringmember.dto.response.GatheringMemberResponse;
 import com.twogether.backend.global.response.ApiResponse;
 import com.twogether.backend.global.response.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,7 +31,6 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.OffsetDateTime;
-import java.util.List;
 
 @Tag(
         name = "모임 API",
@@ -87,38 +81,25 @@ public class GatheringController {
             description = """
                     카테고리, 상태, 검색어 기준으로 모임 목록을 조회합니다.
 
-                    페이지네이션은 page=0, size=20 방식을 기본으로 합니다.
+                    - category: 모임 카테고리 enum 값(STUDY, HOBBY, HACKATHON, PROJECT, NETWORKING). 미지정 시 전체.
+                    - status: 저장 상태 enum 값(RECRUITING, CONFIRMED, COMPLETED, CANCELED). 미지정 시 전체.
+                    - keyword: 제목/내용 부분 일치 검색(대소문자 무시).
+                    - 정렬은 최신순(created_at DESC) 고정, 페이지네이션은 page=0, size=20 기본.
 
-                    현재 Swagger 명세 단계에서는 더미 모임 목록을 반환합니다.
+                    각 항목에는 태그 목록과 화면 표시 상태(displayStatus)가 포함됩니다.
+                    잘못된 category/status 값이 오면 400 INVALID_REQUEST 를 반환합니다.
                     """
     )
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<GatheringSummaryResponse>>> getGatherings(
-            @Parameter(description = "모임 카테고리") @RequestParam(required = false) String category,
-            @Parameter(description = "모임 상태") @RequestParam(required = false) GatheringStatus status,
+            @Parameter(description = "모임 카테고리 enum 값", example = "HACKATHON") @RequestParam(required = false) String category,
+            @Parameter(description = "모임 저장 상태 enum 값", example = "RECRUITING") @RequestParam(required = false) String status,
             @Parameter(description = "제목/내용 검색어") @RequestParam(required = false) String keyword,
             @Parameter(description = "페이지 번호") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "20") int size
     ) {
-        HostSummaryResponse host = new HostSummaryResponse(
-                1L, "인준", "컴퓨터공학과", "NATURAL"
-        );
-
-        GatheringSummaryResponse summary = new GatheringSummaryResponse(
-                1L,
-                "인문X자연 해커톤 팀 모집",
-                "해커톤",
-                "자연캠 명진당",
-                6,
-                2,
-                true,
-                GatheringStatus.RECRUITING,
-                OffsetDateTime.parse("2026-07-15T18:00:00+09:00"),
-                host
-        );
-
         PageResponse<GatheringSummaryResponse> response =
-                PageResponse.of(List.of(summary), page, size, 1);
+                gatheringService.getGatherings(category, status, keyword, page, size);
 
         return ResponseEntity.ok(
                 ApiResponse.success("모임 목록 조회에 성공했습니다.", response)
@@ -128,43 +109,23 @@ public class GatheringController {
     @Operation(
             summary = "모임 상세 조회",
             description = """
-                    모임의 상세 정보, 멤버 목록, 캠퍼스 비율, 내 신청/참여 상태를 조회합니다.
+                    모임의 상세 정보, 멤버 목록, 태그, 이미지, 내 신청/참여 상태를 조회합니다.
 
-                    현재 Swagger 명세 단계에서는 더미 모임 상세 정보를 반환합니다.
+                    - 비로그인 조회를 허용하며, 이 경우 isHost/isMember=false, myApplicationStatus=null 로 반환합니다.
+                    - myApplicationStatus 는 신청(application) 도메인 구현 전까지 항상 null 입니다.
+                    - 존재하지 않는 모임이면 404 GATHERING_NOT_FOUND 를 반환합니다.
                     """
     )
+    @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/{gatheringId}")
     public ResponseEntity<ApiResponse<GatheringDetailResponse>> getGathering(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long gatheringId
     ) {
-        HostSummaryResponse host = new HostSummaryResponse(
-                1L, "인준", "컴퓨터공학과", "NATURAL"
-        );
+        String authUserId = (jwt != null) ? jwt.getSubject() : null;
 
-        List<GatheringMemberResponse> members = List.of(
-                new GatheringMemberResponse(1L, "인준", GatheringMemberRole.HOST, "컴퓨터공학과", "NATURAL"),
-                new GatheringMemberResponse(2L, "기획러", GatheringMemberRole.MEMBER, "경영학과", "HUMANITIES")
-        );
-
-        GatheringDetailResponse response = new GatheringDetailResponse(
-                gatheringId,
-                "인문X자연 해커톤 팀 모집",
-                "기획, 디자인, 개발 같이 할 사람 구합니다.",
-                "해커톤",
-                "자연캠 명진당",
-                6,
-                2,
-                true,
-                GatheringStatus.RECRUITING,
-                OffsetDateTime.parse("2026-07-15T18:00:00+09:00"),
-                OffsetDateTime.parse("2026-07-09T19:00:00+09:00"),
-                host,
-                members,
-                new CampusRatioResponse(1, 1),
-                ApplicationStatus.PENDING,
-                false,
-                false
-        );
+        GatheringDetailResponse response =
+                gatheringService.getGatheringDetail(gatheringId, authUserId);
 
         return ResponseEntity.ok(
                 ApiResponse.success("모임 상세 조회에 성공했습니다.", response)

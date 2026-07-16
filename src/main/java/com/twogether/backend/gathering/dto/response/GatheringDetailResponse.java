@@ -1,5 +1,6 @@
 package com.twogether.backend.gathering.dto.response;
 
+import com.twogether.backend.gathering.domain.Gathering;
 import com.twogether.backend.gathering.domain.GatheringStatus;
 import com.twogether.backend.gatheringapplication.domain.ApplicationStatus;
 import com.twogether.backend.gatheringmember.dto.response.GatheringMemberResponse;
@@ -20,7 +21,7 @@ public record GatheringDetailResponse(
         @Schema(description = "모임 소개", example = "기획, 디자인, 개발 같이 할 사람 구합니다.")
         String content,
 
-        @Schema(description = "모임 카테고리", example = "해커톤")
+        @Schema(description = "모임 카테고리", example = "HACKATHON")
         String category,
 
         @Schema(description = "모임 장소", example = "자연캠 명진당")
@@ -35,8 +36,15 @@ public record GatheringDetailResponse(
         @Schema(description = "인문X자연 융합 모임 여부", example = "true")
         boolean fusionEnabled,
 
-        @Schema(description = "모임 상태", example = "RECRUITING")
+        @Schema(description = "저장 상태(RECRUITING/CONFIRMED/COMPLETED/CANCELED)", example = "RECRUITING")
         GatheringStatus status,
+
+        @Schema(
+                description = "화면 표시 상태(모집 기간·현재 시각 기준 파생값)",
+                example = "RECRUITING",
+                allowableValues = {"RECRUITING", "ALWAYS", "UPCOMING", "CLOSED", "CONFIRMED", "COMPLETED", "CANCELED"}
+        )
+        String displayStatus,
 
         @Schema(description = "모임 예정 일시", example = "2026-07-15T18:00:00+09:00")
         OffsetDateTime meetAt,
@@ -50,8 +58,11 @@ public record GatheringDetailResponse(
         @Schema(description = "모임 멤버 목록")
         List<GatheringMemberResponse> members,
 
-        @Schema(description = "참여 인원 캠퍼스 비율")
-        CampusRatioResponse campusRatio,
+        @Schema(description = "모임 태그 목록", example = "[\"개발\", \"디자인\"]")
+        List<String> tags,
+
+        @Schema(description = "모임 이미지 URL 목록(sort_order 오름차순)")
+        List<String> images,
 
         @Schema(description = "내 신청 상태 (신청한 적이 없으면 null)", example = "PENDING")
         ApplicationStatus myApplicationStatus,
@@ -63,4 +74,59 @@ public record GatheringDetailResponse(
         boolean isMember
 
 ) {
+
+    /**
+     * 모임 상세 응답으로 조립한다.
+     *
+     * @param gathering            host 가 함께 로딩된 모임 엔티티
+     * @param hostDepartmentName   방장 학과명(온보딩 이전이면 null)
+     * @param members              멤버 응답 목록
+     * @param tags                 태그명 목록
+     * @param images               이미지 URL 목록(정렬됨)
+     * @param myApplicationStatus  로그인 사용자의 신청 상태(미신청·비로그인이면 null)
+     * @param isHost               로그인 사용자가 방장인지
+     * @param isMember             로그인 사용자가 멤버인지
+     * @param now                  displayStatus 계산 기준 시각
+     */
+    public static GatheringDetailResponse of(
+            Gathering gathering,
+            String hostDepartmentName,
+            List<GatheringMemberResponse> members,
+            List<String> tags,
+            List<String> images,
+            ApplicationStatus myApplicationStatus,
+            boolean isHost,
+            boolean isMember,
+            OffsetDateTime now
+    ) {
+        HostSummaryResponse host = new HostSummaryResponse(
+                gathering.getHost().getId(),
+                gathering.getHost().getNickname(),
+                hostDepartmentName,
+                // 캠퍼스 비율 기능 제외 → campus 는 null 처리(설계 확정)
+                null
+        );
+
+        return new GatheringDetailResponse(
+                gathering.getId(),
+                gathering.getTitle(),
+                gathering.getContent(),
+                gathering.getCategory().name(),
+                gathering.getLocation(),
+                gathering.getMaxMembers(),
+                gathering.getCurrentMembers(),
+                gathering.isFusionEnabled(),
+                gathering.getStatus(),
+                gathering.displayStatus(now),
+                gathering.getMeetAt(),
+                gathering.getCreatedAt(),
+                host,
+                members,
+                tags,
+                images,
+                myApplicationStatus,
+                isHost,
+                isMember
+        );
+    }
 }
