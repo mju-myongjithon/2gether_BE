@@ -135,24 +135,24 @@ public class GatheringController {
     @Operation(
             summary = "모임 수정",
             description = """
-                    모집 중인 모임만 수정할 수 있습니다.
+                    모집 중(RECRUITING)인 모임을 방장이 부분 수정합니다.
 
-                    방장만 수정할 수 있습니다.
-
-                    현재 Swagger 명세 단계에서는 실제 DB에 반영하지 않고
-                    더미 응답을 반환합니다.
+                    - 보낸 필드만 반영되고, 미전송 필드는 기존 값을 유지합니다.
+                    - tagIds/imageUrls 는 목록을 보내면 통째로 교체(빈 목록이면 전체 삭제), 미전송 시 유지.
+                    - maxMembers 는 현재 참여 인원보다 적게 줄일 수 없습니다.
+                    - 방장이 아니면 403 FORBIDDEN, 모집중이 아니면 409 GATHERING_NOT_MODIFIABLE,
+                      없는 모임이면 404 GATHERING_NOT_FOUND.
                     """
     )
     @SecurityRequirement(name = "Bearer Authentication")
     @PatchMapping("/{gatheringId}")
     public ResponseEntity<ApiResponse<GatheringUpdateResponse>> updateGathering(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long gatheringId,
-            @RequestBody GatheringUpdateRequest request
+            @Valid @RequestBody GatheringUpdateRequest request
     ) {
-        GatheringUpdateResponse response = new GatheringUpdateResponse(
-                gatheringId,
-                OffsetDateTime.parse("2026-07-09T20:00:00+09:00")
-        );
+        GatheringUpdateResponse response =
+                gatheringService.update(jwt.getSubject(), gatheringId, request);
 
         return ResponseEntity.ok(
                 ApiResponse.success("모임이 수정되었습니다.", response)
