@@ -2,6 +2,7 @@ package com.twogether.backend.gathering.service;
 
 import com.twogether.backend.department.domain.Department;
 import com.twogether.backend.department.repository.DepartmentRepository;
+import com.twogether.backend.bookmark.repository.GatheringBookmarkRepository;
 import com.twogether.backend.gathering.domain.Gathering;
 import com.twogether.backend.gathering.domain.GatheringCategory;
 import com.twogether.backend.gathering.domain.GatheringImage;
@@ -31,6 +32,8 @@ import com.twogether.backend.gathering.repository.GatheringTagRepository;
 import com.twogether.backend.global.exception.BusinessException;
 import com.twogether.backend.global.exception.ErrorCode;
 import com.twogether.backend.global.response.PageResponse;
+import com.twogether.backend.notification.domain.NotificationType;
+import com.twogether.backend.notification.service.NotificationDispatchService;
 import com.twogether.backend.tag.repository.TagRepository;
 import com.twogether.backend.user.domain.User;
 import com.twogether.backend.user.repository.UserRepository;
@@ -50,7 +53,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
-import com.twogether.backend.chat.service.ChatRoomService;
 
 @Service
 @Transactional(readOnly = true)
@@ -63,7 +65,9 @@ public class GatheringService {
     private final TagRepository tagRepository;
     private final UserRepository userRepository;
     private final DepartmentRepository departmentRepository;
+    private final GatheringBookmarkRepository gatheringBookmarkRepository;
     private final ChatRoomService chatRoomService;
+    private final NotificationDispatchService notificationDispatchService;
 
     public GatheringService(
             GatheringRepository gatheringRepository,
@@ -73,7 +77,9 @@ public class GatheringService {
             TagRepository tagRepository,
             UserRepository userRepository,
             DepartmentRepository departmentRepository,
-            ChatRoomService chatRoomService
+            GatheringBookmarkRepository gatheringBookmarkRepository,
+            ChatRoomService chatRoomService,
+            NotificationDispatchService notificationDispatchService
     ) {
         this.gatheringRepository = gatheringRepository;
         this.gatheringMemberRepository = gatheringMemberRepository;
@@ -82,8 +88,11 @@ public class GatheringService {
         this.tagRepository = tagRepository;
         this.userRepository = userRepository;
         this.departmentRepository = departmentRepository;
+        this.gatheringBookmarkRepository = gatheringBookmarkRepository;
         this.chatRoomService = chatRoomService;
+        this.notificationDispatchService = notificationDispatchService;
     }
+
     /**
      * 모임 목록 조회(필터·검색·페이징).
      *
@@ -306,6 +315,7 @@ public class GatheringService {
 
         boolean isHost = false;
         boolean isMember = false;
+        boolean bookmarked = false;
         if (authUserId != null) {
             Long myUserId = userRepository.findByAuthUserId(authUserId)
                     .map(User::getId)
@@ -314,6 +324,8 @@ public class GatheringService {
                 isHost = gathering.isHost(myUserId);
                 isMember = gatheringMemberRepository
                         .existsByGatheringIdAndUserId(gatheringId, myUserId);
+                bookmarked = gatheringBookmarkRepository
+                        .existsByBookmarkerIdAndGatheringId(myUserId, gatheringId);
             }
         }
 
@@ -336,6 +348,7 @@ public class GatheringService {
                 myApplicationStatus,
                 isHost,
                 isMember,
+                                bookmarked,
                 OffsetDateTime.now()
         );
     }
@@ -491,6 +504,19 @@ public class GatheringService {
                 gathering.getHost().getId(),
                 memberUserIds
         );
+
+        for (Long memberUserId : memberUserIds) {
+            notificationDispatchService.notifyEvent(
+                    memberUserId,
+                    NotificationType.GATHERING_CONFIRMED,
+                    "모임이 확정되었습니다",
+                    "'" + gathering.getTitle() + "' 모임 채팅방이 열렸습니다.",
+                    Map.of(
+                            "gatheringId", gathering.getId(),
+                            "roomId", chatRoomId
+                    )
+            );
+        }
 
         return new GatheringConfirmResponse(
                 gathering.getId(),
