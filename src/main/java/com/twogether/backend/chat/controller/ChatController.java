@@ -174,6 +174,27 @@ public class ChatController {
     }
 
     @Operation(
+            summary = "채팅방 나가기",
+            description = """
+                    채팅방에서 나갑니다(소프트). 메시지 이력은 보존되고 목록/상세에서 제외됩니다.
+
+                    퇴장 SYSTEM 메시지가 발행되며, 방장이 나가면 남은 참여자 중 가장 먼저 입장한 사람에게
+                    방장이 위임되고, 남은 참여자가 없으면 방이 종료됩니다.
+                    """
+    )
+    @PostMapping("/{roomId}/leave")
+    public ResponseEntity<ApiResponse<Void>> leaveChatRoom(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long roomId
+    ) {
+        chatRoomService.leave(jwt.getSubject(), roomId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("채팅방에서 나갔습니다.")
+        );
+    }
+
+    @Operation(
             summary = "채팅방 공지 등록",
             description = """
                     상단 고정 공지를 등록합니다. 방장(OWNER)만 등록할 수 있습니다.
