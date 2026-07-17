@@ -5,9 +5,11 @@ import com.twogether.backend.chat.domain.ChatRoomMember;
 import com.twogether.backend.chat.domain.Message;
 import com.twogether.backend.chat.dto.request.ChatReadRequest;
 import com.twogether.backend.chat.dto.response.ChatReadResponse;
+import com.twogether.backend.chat.dto.response.ChatNoticeResponse;
 import com.twogether.backend.chat.dto.response.ChatRoomDetailResponse;
 import com.twogether.backend.chat.dto.response.ChatRoomMemberResponse;
 import com.twogether.backend.chat.dto.response.ChatRoomSummaryResponse;
+import com.twogether.backend.chat.repository.ChatNoticeRepository;
 import com.twogether.backend.chat.repository.ChatRoomMemberRepository;
 import com.twogether.backend.chat.repository.ChatRoomRepository;
 import com.twogether.backend.chat.repository.MessageRepository;
@@ -44,6 +46,7 @@ import java.util.stream.Collectors;
 public class ChatRoomService {
 
     private final ChatRoomRepository chatRoomRepository;
+    private final ChatNoticeRepository chatNoticeRepository;
     private final ChatRoomMemberRepository chatRoomMemberRepository;
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
@@ -51,12 +54,14 @@ public class ChatRoomService {
 
     public ChatRoomService(
             ChatRoomRepository chatRoomRepository,
+            ChatNoticeRepository chatNoticeRepository,
             ChatRoomMemberRepository chatRoomMemberRepository,
             MessageRepository messageRepository,
             UserRepository userRepository,
             DepartmentRepository departmentRepository
     ) {
         this.chatRoomRepository = chatRoomRepository;
+        this.chatNoticeRepository = chatNoticeRepository;
         this.chatRoomMemberRepository = chatRoomMemberRepository;
         this.messageRepository = messageRepository;
         this.userRepository = userRepository;
@@ -263,12 +268,18 @@ public class ChatRoomService {
                 .map(member -> toMemberResponse(member, departmentMap))
                 .toList();
 
+        ChatNoticeResponse activeNotice = chatNoticeRepository
+                .findByChatRoomIdAndIsActiveTrue(roomId)
+                .map(ChatNoticeResponse::from)
+                .orElse(null);
+
         return new ChatRoomDetailResponse(
                 room.getId(),
                 room.getGatheringId(),
                 room.getType(),
                 room.getTitle(),
                 room.getCreatedAt(),
+                activeNotice,
                 memberResponses
         );
     }

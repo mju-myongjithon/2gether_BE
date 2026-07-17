@@ -2,13 +2,16 @@ package com.twogether.backend.chat.controller;
 
 import com.twogether.backend.chat.dto.request.ChatMessageSendRequest;
 import com.twogether.backend.chat.dto.request.ChatReadRequest;
+import com.twogether.backend.chat.dto.request.ChatNoticeCreateRequest;
 import com.twogether.backend.chat.dto.request.ImageMessageSendRequest;
 import com.twogether.backend.chat.dto.response.ChatMessagePageResponse;
 import com.twogether.backend.chat.dto.response.ChatMessageResponse;
+import com.twogether.backend.chat.dto.response.ChatNoticeResponse;
 import com.twogether.backend.chat.dto.response.ChatReadResponse;
 import com.twogether.backend.chat.dto.response.ChatRoomDetailResponse;
 import com.twogether.backend.chat.dto.response.ChatRoomSummaryResponse;
 import com.twogether.backend.chat.service.ChatMessageService;
+import com.twogether.backend.chat.service.ChatNoticeService;
 import com.twogether.backend.chat.service.ChatRoomService;
 import com.twogether.backend.global.response.ApiResponse;
 import com.twogether.backend.global.response.PageResponse;
@@ -20,6 +23,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -39,13 +43,16 @@ public class ChatController {
 
     private final ChatRoomService chatRoomService;
     private final ChatMessageService chatMessageService;
+    private final ChatNoticeService chatNoticeService;
 
     public ChatController(
             ChatRoomService chatRoomService,
-            ChatMessageService chatMessageService
+            ChatMessageService chatMessageService,
+            ChatNoticeService chatNoticeService
     ) {
         this.chatRoomService = chatRoomService;
         this.chatMessageService = chatMessageService;
+        this.chatNoticeService = chatNoticeService;
     }
 
     @Operation(
@@ -163,6 +170,62 @@ public class ChatController {
 
         return ResponseEntity.ok(
                 ApiResponse.success("이미지 메시지가 전송되었습니다.", response)
+        );
+    }
+
+    @Operation(
+            summary = "채팅방 공지 등록",
+            description = """
+                    상단 고정 공지를 등록합니다. 방장(OWNER)만 등록할 수 있습니다.
+
+                    기존 활성 공지가 있으면 해제되고 새 공지가 활성화됩니다(방당 활성 공지 1건).
+                    등록 시 SYSTEM 메시지가 발행되어 채팅 흐름에도 표시됩니다.
+                    """
+    )
+    @PostMapping("/{roomId}/notices")
+    public ResponseEntity<ApiResponse<ChatNoticeResponse>> registerNotice(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long roomId,
+            @Valid @RequestBody ChatNoticeCreateRequest request
+    ) {
+        ChatNoticeResponse response =
+                chatNoticeService.register(jwt.getSubject(), roomId, request);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("공지가 등록되었습니다.", response)
+        );
+    }
+
+    @Operation(
+            summary = "채팅방 활성 공지 조회",
+            description = "현재 상단 고정 활성 공지를 조회합니다. 없으면 data=null. 참여자만 조회할 수 있습니다."
+    )
+    @GetMapping("/{roomId}/notices/active")
+    public ResponseEntity<ApiResponse<ChatNoticeResponse>> getActiveNotice(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long roomId
+    ) {
+        ChatNoticeResponse response =
+                chatNoticeService.getActive(jwt.getSubject(), roomId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("활성 공지 조회에 성공했습니다.", response)
+        );
+    }
+
+    @Operation(
+            summary = "채팅방 공지 해제",
+            description = "현재 활성 공지를 해제합니다. 방장(OWNER)만 해제할 수 있습니다."
+    )
+    @DeleteMapping("/{roomId}/notices/active")
+    public ResponseEntity<ApiResponse<Void>> deactivateNotice(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long roomId
+    ) {
+        chatNoticeService.deactivateActive(jwt.getSubject(), roomId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("공지가 해제되었습니다.")
         );
     }
 
