@@ -27,7 +27,8 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",
-                                "/login-test.html"
+                                "/login-test.html",
+                                "/chat-test.html"
                         ).permitAll()
 
                         // 서버 상태 확인 API 허용
