@@ -124,6 +124,25 @@ public class ChatMessageService {
         return response;
     }
 
+    @Transactional
+    public ChatMessageResponse sendCard(String authUserId, Long roomId, String title, String content) {
+        return sendCard(authUserId, roomId, "TOPIC_RECOMMENDATION", title, content);
+    }
+
+    @Transactional
+    public ChatMessageResponse sendCard(
+            String authUserId, Long roomId, String cardType, String title, String content) {
+        User sender = findUser(authUserId);
+        ChatRoom room = findRoom(roomId);
+        verifyParticipant(roomId, sender.getId());
+        Message message = messageRepository.save(Message.card(
+                room, sender, content, Map.of("cardType", cardType, "title", title, "content", content)));
+        room.updateLastMessage(message.getId(), message.getCreatedAt());
+        ChatMessageResponse response = ChatMessageResponse.from(message);
+        broadcastAndPublish(roomId, message, sender.getId(), title, response);
+        return response;
+    }
+
     /**
      * 이미지 메시지를 저장한다. 첨부는 message_attachment 로 분리 저장하고,
      * 응답/브로드캐스트에 첨부 목록을 포함한다. client_message_id 로 멱등 처리.

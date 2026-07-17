@@ -1,6 +1,7 @@
 package com.twogether.backend.gathering.service;
 
 import com.twogether.backend.department.repository.DepartmentRepository;
+import com.twogether.backend.chat.service.ChatRoomService;
 import com.twogether.backend.gathering.domain.Gathering;
 import com.twogether.backend.gathering.domain.GatheringStatus;
 import com.twogether.backend.gathering.repository.GatheringImageRepository;
