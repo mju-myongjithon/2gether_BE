@@ -1,6 +1,8 @@
 package com.twogether.backend.chat.dto.response;
 
+import com.twogether.backend.chat.domain.Message;
 import com.twogether.backend.chat.domain.MessageType;
+import com.twogether.backend.user.domain.User;
 import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.OffsetDateTime;
@@ -30,4 +32,17 @@ public record ChatMessageResponse(
         OffsetDateTime createdAt
 
 ) {
+
+    public static ChatMessageResponse from(Message message) {
+        User sender = message.getSender();
+        return new ChatMessageResponse(
+                message.getId(),
+                message.getChatRoom().getId(),
+                sender == null ? null : sender.getId(),
+                sender == null ? null : sender.getNickname(),
+                message.getType(),
+                message.getContent(),
+                message.getCreatedAt()
+        );
+    }
 }
