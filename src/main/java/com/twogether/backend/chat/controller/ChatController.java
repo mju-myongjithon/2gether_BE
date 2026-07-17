@@ -2,6 +2,7 @@ package com.twogether.backend.chat.controller;
 
 import com.twogether.backend.chat.dto.request.ChatMessageSendRequest;
 import com.twogether.backend.chat.dto.request.ChatReadRequest;
+import com.twogether.backend.chat.dto.request.ImageMessageSendRequest;
 import com.twogether.backend.chat.dto.response.ChatMessagePageResponse;
 import com.twogether.backend.chat.dto.response.ChatMessageResponse;
 import com.twogether.backend.chat.dto.response.ChatReadResponse;
@@ -139,6 +140,29 @@ public class ChatController {
 
         return ResponseEntity.ok(
                 ApiResponse.success("메시지가 전송되었습니다.", response)
+        );
+    }
+
+    @Operation(
+            summary = "이미지 메시지 전송",
+            description = """
+                    이미지 메시지를 전송합니다. 첨부(URL·썸네일·크기 등)는 message_attachment로 저장됩니다.
+
+                    파일 바이트는 서버가 다루지 않습니다. 클라이언트가 스토리지에 업로드한 뒤
+                    확보한 URL을 attachments로 전달하세요. clientMessageId로 재전송이 멱등 처리됩니다.
+                    """
+    )
+    @PostMapping("/{roomId}/messages/images")
+    public ResponseEntity<ApiResponse<ChatMessageResponse>> sendImageMessage(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long roomId,
+            @Valid @RequestBody ImageMessageSendRequest request
+    ) {
+        ChatMessageResponse response =
+                chatMessageService.sendImage(jwt.getSubject(), roomId, request);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("이미지 메시지가 전송되었습니다.", response)
         );
     }
 
