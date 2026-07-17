@@ -292,6 +292,24 @@ public enum ErrorCode {
             "채팅방을 찾을 수 없습니다."
     ),
 
+    CHAT_ROOM_ACCESS_DENIED(
+            HttpStatus.FORBIDDEN,
+            "CHAT_ROOM_ACCESS_DENIED",
+            "채팅방에 접근할 권한이 없습니다."
+    ),
+
+    TOPIC_RECOMMENDATION_NOT_AVAILABLE(
+            HttpStatus.BAD_REQUEST,
+            "TOPIC_RECOMMENDATION_NOT_AVAILABLE",
+            "모임과 연결된 채팅방에서만 대화 주제를 추천할 수 있습니다."
+    ),
+
+    AI_RECOMMENDATION_FAILED(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "AI_RECOMMENDATION_FAILED",
+            "대화 주제 추천 결과를 생성하지 못했습니다."
+    ),
+
     CHAT_NOTICE_NOT_FOUND(
             HttpStatus.NOT_FOUND,
             "CHAT_NOTICE_NOT_FOUND",
