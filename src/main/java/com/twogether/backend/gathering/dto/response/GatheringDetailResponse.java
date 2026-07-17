@@ -1,6 +1,7 @@
 package com.twogether.backend.gathering.dto.response;
 
 import com.twogether.backend.gathering.domain.Gathering;
+import com.twogether.backend.gathering.domain.GatheringMeetingType;
 import com.twogether.backend.gathering.domain.GatheringStatus;
 import com.twogether.backend.gatheringapplication.domain.ApplicationStatus;
 import com.twogether.backend.gatheringmember.dto.response.GatheringMemberResponse;
@@ -39,6 +40,12 @@ public record GatheringDetailResponse(
         @Schema(description = "저장 상태(RECRUITING/CONFIRMED/COMPLETED/CANCELED)", example = "RECRUITING")
         GatheringStatus status,
 
+        @Schema(description = "모집 시작 일시", example = "2026-07-01T09:00:00+09:00")
+        OffsetDateTime recruitStartAt,
+
+        @Schema(description = "모집 종료 일시", example = "2026-07-10T23:59:59+09:00")
+        OffsetDateTime recruitEndAt,
+
         @Schema(
                 description = "화면 표시 상태(모집 기간·현재 시각 기준 파생값)",
                 example = "RECRUITING",
@@ -48,6 +55,15 @@ public record GatheringDetailResponse(
 
         @Schema(description = "모임 예정 일시", example = "2026-07-15T18:00:00+09:00")
         OffsetDateTime meetAt,
+
+        @Schema(description = "모임 일정 형태", example = "SINGLE")
+        GatheringMeetingType meetingType,
+
+        @Schema(description = "모임 종료 일시 또는 종료 날짜", example = "2026-08-15T18:00:00+09:00")
+        OffsetDateTime meetingEndAt,
+
+        @Schema(description = "반복 일정 설명", example = "매주 화/목 19:00")
+        String repeatRule,
 
         @Schema(description = "생성 일시", example = "2026-07-09T19:00:00+09:00")
         OffsetDateTime createdAt,
@@ -91,6 +107,7 @@ public record GatheringDetailResponse(
     public static GatheringDetailResponse of(
             Gathering gathering,
             String hostDepartmentName,
+            String hostCampus,
             List<GatheringMemberResponse> members,
             List<String> tags,
             List<String> images,
@@ -103,8 +120,7 @@ public record GatheringDetailResponse(
                 gathering.getHost().getId(),
                 gathering.getHost().getNickname(),
                 hostDepartmentName,
-                // 캠퍼스 비율 기능 제외 → campus 는 null 처리(설계 확정)
-                null
+                hostCampus
         );
 
         return new GatheringDetailResponse(
@@ -114,11 +130,16 @@ public record GatheringDetailResponse(
                 gathering.getCategory().name(),
                 gathering.getLocation(),
                 gathering.getMaxMembers(),
-                gathering.getCurrentMembers(),
+                members.size(),
                 gathering.isFusionEnabled(),
                 gathering.getStatus(),
+                gathering.getRecruitStartAt(),
+                gathering.getRecruitEndAt(),
                 gathering.displayStatus(now),
                 gathering.getMeetAt(),
+                gathering.getMeetingType(),
+                gathering.getMeetingEndAt(),
+                gathering.getRepeatRule(),
                 gathering.getCreatedAt(),
                 host,
                 members,

@@ -2,6 +2,7 @@ package com.twogether.backend.gathering.repository;
 
 import com.twogether.backend.gathering.domain.GatheringTag;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -10,8 +11,20 @@ import java.util.List;
 public interface GatheringTagRepository
         extends JpaRepository<GatheringTag, Long> {
 
-    void deleteAllByGatheringId(
-            Long gatheringId
+    /**
+     * 모임의 태그를 벌크 삭제한다.
+     *
+     * 파생 삭제는 INSERT가 DELETE보다 먼저 flush되어 태그 전체 교체 시
+     * (gathering_id, tag_id) 유니크 제약 위반(500)이 발생하므로
+     * 즉시 실행되는 벌크 쿼리를 사용한다(UserTagRepository와 동일 패턴).
+     */
+    @Modifying(flushAutomatically = true)
+    @Query("""
+            delete from GatheringTag gt
+            where gt.gathering.id = :gatheringId
+            """)
+    int deleteAllByGatheringId(
+            @Param("gatheringId") Long gatheringId
     );
 
     /**

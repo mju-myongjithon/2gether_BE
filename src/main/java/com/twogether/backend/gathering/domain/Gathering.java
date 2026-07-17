@@ -106,6 +106,16 @@ public class Gathering {
     @Column(name = "meet_at")
     private OffsetDateTime meetAt;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "meeting_type", length = 20)
+    private GatheringMeetingType meetingType;
+
+    @Column(name = "meeting_end_at")
+    private OffsetDateTime meetingEndAt;
+
+    @Column(name = "repeat_rule", length = 255)
+    private String repeatRule;
+
     @Column(name = "confirmed_at")
     private OffsetDateTime confirmedAt;
 
@@ -138,7 +148,10 @@ public class Gathering {
             boolean fusionEnabled,
             OffsetDateTime recruitStartAt,
             OffsetDateTime recruitEndAt,
-            OffsetDateTime meetAt
+            OffsetDateTime meetAt,
+            GatheringMeetingType meetingType,
+            OffsetDateTime meetingEndAt,
+            String repeatRule
     ) {
         validateMaxMembers(maxMembers);
 
@@ -154,6 +167,9 @@ public class Gathering {
         this.recruitStartAt = recruitStartAt;
         this.recruitEndAt = recruitEndAt;
         this.meetAt = meetAt;
+        this.meetingType = meetingType != null ? meetingType : GatheringMeetingType.SINGLE;
+        this.meetingEndAt = meetingEndAt;
+        this.repeatRule = repeatRule;
     }
 
     private void validateMaxMembers(
@@ -188,7 +204,10 @@ public class Gathering {
             String location,
             short maxMembers,
             boolean fusionEnabled,
-            OffsetDateTime meetAt
+            OffsetDateTime meetAt,
+            GatheringMeetingType meetingType,
+            OffsetDateTime meetingEndAt,
+            String repeatRule
     ) {
         validateMaxMembers(maxMembers);
 
@@ -199,6 +218,9 @@ public class Gathering {
         this.maxMembers = maxMembers;
         this.fusionEnabled = fusionEnabled;
         this.meetAt = meetAt;
+        this.meetingType = meetingType != null ? meetingType : this.meetingType;
+        this.meetingEndAt = meetingEndAt;
+        this.repeatRule = repeatRule;
         this.updatedAt = OffsetDateTime.now();
     }
 
@@ -216,6 +238,12 @@ public class Gathering {
 
     public void increaseMember() {
         this.currentMembers++;
+    }
+
+    public void decreaseMember() {
+        if (this.currentMembers > 0) {
+            this.currentMembers--;
+        }
     }
 
     public boolean isRecruiting() {
@@ -302,6 +330,18 @@ public class Gathering {
 
     public OffsetDateTime getMeetAt() {
         return meetAt;
+    }
+
+    public GatheringMeetingType getMeetingType() {
+        return meetingType != null ? meetingType : GatheringMeetingType.SINGLE;
+    }
+
+    public OffsetDateTime getMeetingEndAt() {
+        return meetingEndAt;
+    }
+
+    public String getRepeatRule() {
+        return repeatRule;
     }
 
     public OffsetDateTime getConfirmedAt() {

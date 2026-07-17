@@ -1,6 +1,7 @@
 package com.twogether.backend.gathering.dto.request;
 
 import com.twogether.backend.gathering.domain.GatheringCategory;
+import com.twogether.backend.gathering.domain.GatheringMeetingType;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -37,6 +38,10 @@ public record GatheringCreateRequest(
         @Schema(description = "인문X자연 융합 모임 여부", example = "true")
         boolean fusionEnabled,
 
+        @Schema(description = "모임 일정 형태", example = "SINGLE")
+        @NotNull(message = "모임 일정 형태는 필수입니다.")
+        GatheringMeetingType meetingType,
+
         @Schema(description = "모집 시작 일시 (ISO 8601, null이면 생성 즉시 모집)", example = "2026-07-10T09:00:00+09:00")
         OffsetDateTime recruitStartAt,
 
@@ -45,6 +50,13 @@ public record GatheringCreateRequest(
 
         @Schema(description = "모임 예정 일시 (ISO 8601)", example = "2026-07-15T18:00:00+09:00")
         OffsetDateTime meetAt,
+
+        @Schema(description = "모임 종료 일시 또는 종료 날짜 (기간형/반복형에서 사용)", example = "2026-08-15T18:00:00+09:00")
+        OffsetDateTime meetingEndAt,
+
+        @Schema(description = "반복 일정 설명(반복형에서 사용)", example = "매주 화/목 19:00")
+        @Size(max = 255, message = "반복 일정 설명은 255자 이하로 입력해주세요.")
+        String repeatRule,
 
         @Schema(description = "모임 태그 ID 목록", example = "[1, 2]")
         List<Long> tagIds,
