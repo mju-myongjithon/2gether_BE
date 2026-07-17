@@ -7,6 +7,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 
 @Schema(description = "채팅 메시지 응답")
 public record ChatMessageResponse(
@@ -42,7 +43,10 @@ public record ChatMessageResponse(
         Long repliedToMessageId,
 
         @Schema(description = "읽은 사용자 수", example = "3")
-        Long readByCount
+        Long readByCount,
+
+        @Schema(description = "부가 정보(JSONB). SYSTEM 상세·CARD 카드데이터(cardType/title/content) 등")
+        Map<String, Object> meta
 
 ) {
 
@@ -83,7 +87,8 @@ public record ChatMessageResponse(
                 message.getCreatedAt(),
                 message.getClientMessageId() == null ? null : message.getClientMessageId().toString(),
                 repliedToMessageId != null ? repliedToMessageId : (message.getRepliedToMessage() != null ? message.getRepliedToMessage().getId() : null),
-                readByCount
+                readByCount,
+                message.getMeta()
         );
     }
 }

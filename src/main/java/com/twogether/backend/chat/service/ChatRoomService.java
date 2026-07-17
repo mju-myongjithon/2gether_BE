@@ -6,6 +6,7 @@ import com.twogether.backend.chat.domain.ChatRoomMember;
 import com.twogether.backend.chat.domain.Message;
 import com.twogether.backend.chat.domain.MessageRead;
 import com.twogether.backend.chat.dto.request.ChatReadRequest;
+import com.twogether.backend.chat.dto.response.ChatReadBroadcastResponse;
 import com.twogether.backend.chat.dto.response.ChatReadResponse;
 import com.twogether.backend.chat.dto.response.ChatMessageResponse;
 import com.twogether.backend.chat.dto.response.ChatNoticeResponse;
@@ -383,6 +384,19 @@ public class ChatRoomService {
         }
 
         membership.updateLastReadMessageId(newLastRead);
+
+        // 읽음 위치가 전진했을 때만 방 구독자에게 실시간 반영(메시지별 안읽음 수 갱신용).
+        if (!newLastRead.equals(current)) {
+            messagingTemplate.convertAndSend(
+                    BROADCAST_DESTINATION_PREFIX + roomId + "/read",
+                    new ChatReadBroadcastResponse(
+                            roomId,
+                            me.getId(),
+                            current == null ? 0L : current,
+                            newLastRead
+                    )
+            );
+        }
 
         int unreadCount = (int) messageRepository
                 .countByChatRoomIdAndIdGreaterThan(roomId, newLastRead);

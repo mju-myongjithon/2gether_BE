@@ -48,6 +48,14 @@ public interface ChatRoomMemberRepository
     );
 
     /*
+     * 특정 메시지를 읽은(lastReadMessageId >= messageId) 현재 참여자 수.
+     */
+    long countByChatRoomIdAndLeftAtIsNullAndLastReadMessageIdGreaterThanEqual(
+            Long chatRoomId,
+            Long lastReadMessageId
+    );
+
+    /*
      * 특정 방의 방장(OWNER) 조회.
      */
     Optional<ChatRoomMember> findByChatRoomIdAndRoleAndLeftAtIsNull(

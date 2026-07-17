@@ -5,6 +5,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
@@ -66,10 +68,22 @@ public class SecurityConfig {
 
                 // Authorization 헤더에 들어온 JWT 검증
                 .oauth2ResourceServer(oauth2 ->
-                        oauth2.jwt(jwt -> {
-                        })
+                        oauth2
+                                .bearerTokenResolver(bearerTokenResolver())
+                                .jwt(jwt -> {
+                                })
                 );
 
         return http.build();
+    }
+
+    /**
+     * SSE(EventSource)는 Authorization 헤더를 설정할 수 없으므로
+     * access_token 쿼리 파라미터(RFC 6750)로도 JWT 를 받을 수 있게 한다.
+     */
+    private BearerTokenResolver bearerTokenResolver() {
+        DefaultBearerTokenResolver resolver = new DefaultBearerTokenResolver();
+        resolver.setAllowUriQueryParameter(true);
+        return resolver;
     }
 }

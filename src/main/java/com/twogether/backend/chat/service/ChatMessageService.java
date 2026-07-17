@@ -1,6 +1,7 @@
 package com.twogether.backend.chat.service;
 
 import com.twogether.backend.chat.domain.ChatRoom;
+import com.twogether.backend.chat.domain.ChatRoomMember;
 import com.twogether.backend.chat.domain.Message;
 import com.twogether.backend.chat.domain.MessageAttachment;
 import com.twogether.backend.chat.domain.MessageRead;
@@ -94,14 +95,14 @@ public class ChatMessageService {
     ) {
         User sender = findUser(authUserId);
         ChatRoom room = findRoom(roomId);
-        verifyParticipant(roomId, sender.getId());
+        ChatRoomMember senderMembership = findParticipatingMembership(roomId, sender.getId());
         validateTextType(request.type());
 
         if (request.clientMessageId() != null) {
             Optional<Message> duplicated = messageRepository
                     .findByChatRoomIdAndClientMessageId(roomId, request.clientMessageId());
             if (duplicated.isPresent()) {
-                Long readByCount = messageReadRepository.countByMessageId(duplicated.get().getId());
+                Long readByCount = countReaders(roomId, duplicated.get().getId());
                 return ChatMessageResponse.from(duplicated.get(), List.of(), readByCount);
             }
         }
@@ -116,8 +117,10 @@ public class ChatMessageService {
                 Message.text(room, sender, request.content(), request.clientMessageId(), repliedToMessage)
         );
         room.updateLastMessage(message.getId(), message.getCreatedAt());
+        // 발신자는 자기 메시지를 읽은 것으로 처리해 안읽음 집계에서 제외한다.
+        senderMembership.updateLastReadMessageId(message.getId());
 
-        Long readByCount = 0L;
+        Long readByCount = 1L;
         ChatMessageResponse response = ChatMessageResponse.from(message, List.of(), message.getRepliedToMessage() != null ? message.getRepliedToMessage().getId() : null, readByCount);
         broadcastAndPublish(roomId, message, sender.getId(), request.content(), response);
 
@@ -134,11 +137,12 @@ public class ChatMessageService {
             String authUserId, Long roomId, String cardType, String title, String content) {
         User sender = findUser(authUserId);
         ChatRoom room = findRoom(roomId);
-        verifyParticipant(roomId, sender.getId());
+        ChatRoomMember senderMembership = findParticipatingMembership(roomId, sender.getId());
         Message message = messageRepository.save(Message.card(
                 room, sender, content, Map.of("cardType", cardType, "title", title, "content", content)));
         room.updateLastMessage(message.getId(), message.getCreatedAt());
-        ChatMessageResponse response = ChatMessageResponse.from(message);
+        senderMembership.updateLastReadMessageId(message.getId());
+        ChatMessageResponse response = ChatMessageResponse.from(message, List.of(), 1L);
         broadcastAndPublish(roomId, message, sender.getId(), title, response);
         return response;
     }
@@ -155,13 +159,13 @@ public class ChatMessageService {
     ) {
         User sender = findUser(authUserId);
         ChatRoom room = findRoom(roomId);
-        verifyParticipant(roomId, sender.getId());
+        ChatRoomMember senderMembership = findParticipatingMembership(roomId, sender.getId());
 
         if (request.clientMessageId() != null) {
             Optional<Message> duplicated = messageRepository
                     .findByChatRoomIdAndClientMessageId(roomId, request.clientMessageId());
             if (duplicated.isPresent()) {
-                Long readByCount = messageReadRepository.countByMessageId(duplicated.get().getId());
+                Long readByCount = countReaders(roomId, duplicated.get().getId());
                 return ChatMessageResponse.from(duplicated.get(), loadAttachments(duplicated.get().getId()), readByCount);
             }
         }
@@ -191,8 +195,9 @@ public class ChatMessageService {
                         .toList();
 
         room.updateLastMessage(message.getId(), message.getCreatedAt());
+        senderMembership.updateLastReadMessageId(message.getId());
 
-        Long readByCount = 0L;
+        Long readByCount = 1L;
         ChatMessageResponse response = ChatMessageResponse.from(message, attachmentResponses, readByCount);
         broadcastAndPublish(roomId, message, sender.getId(), IMAGE_PREVIEW, response);
 
@@ -227,7 +232,7 @@ public class ChatMessageService {
         Map<Long, List<MessageAttachmentResponse>> attachmentsByMessage =
                 loadAttachmentsFor(pageRows);
 
-        Map<Long, Long> readCountByMessage = loadReadCountsFor(pageRows);
+        Map<Long, Long> readCountByMessage = loadReadCountsFor(roomId, pageRows);
 
         List<ChatMessageResponse> content = pageRows.stream()
                 .map(message -> ChatMessageResponse.from(
@@ -273,22 +278,46 @@ public class ChatMessageService {
                 .toList();
     }
 
+    /**
+     * 메시지별 읽은 사용자 수를 멤버십의 last_read_message_id 기반으로 계산한다.
+     * (읽은 수 = lastReadMessageId >= messageId 인 현재 참여자 수. 발신자도 전송 시 읽음 처리되어 포함된다.)
+     */
     private Map<Long, Long> loadReadCountsFor(
+            Long roomId,
             List<Message> messages
     ) {
-        List<Long> messageIds = messages.stream()
-                .map(Message::getId)
-                .toList();
-
-        if (messageIds.isEmpty()) {
+        if (messages.isEmpty()) {
             return Map.of();
         }
 
-        return messageIds.stream()
+        List<ChatRoomMember> members =
+                chatRoomMemberRepository.findAllByChatRoomIdAndLeftAtIsNull(roomId);
+
+        return messages.stream()
                 .collect(Collectors.toMap(
-                        id -> id,
-                        messageReadRepository::countByMessageId
+                        Message::getId,
+                        message -> members.stream()
+                                .filter(member -> member.getLastReadMessageId() != null
+                                        && member.getLastReadMessageId() >= message.getId())
+                                .count()
                 ));
+    }
+
+    private Long countReaders(
+            Long roomId,
+            Long messageId
+    ) {
+        return chatRoomMemberRepository
+                .countByChatRoomIdAndLeftAtIsNullAndLastReadMessageIdGreaterThanEqual(roomId, messageId);
+    }
+
+    private ChatRoomMember findParticipatingMembership(
+            Long roomId,
+            Long userId
+    ) {
+        return chatRoomMemberRepository.findByChatRoomIdAndUserId(roomId, userId)
+                .filter(ChatRoomMember::isParticipating)
+                .orElseThrow(() -> new BusinessException(ErrorCode.FORBIDDEN));
     }
 
     private void broadcastAndPublish(
