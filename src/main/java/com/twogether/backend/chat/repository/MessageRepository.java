@@ -3,7 +3,10 @@ package com.twogether.backend.chat.repository;
 import com.twogether.backend.chat.domain.Message;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -42,5 +45,37 @@ public interface MessageRepository
             Long chatRoomId,
             Long id,
             Pageable pageable
+    );
+
+    @Query("""
+            select count(m.id)
+            from Message m
+            where m.chatRoom.id = :chatRoomId
+              and m.createdAt >= :start
+              and m.createdAt < :end
+              and m.deletedAt is null
+              and m.sender is not null
+              and m.type <> com.twogether.backend.chat.domain.MessageType.SYSTEM
+            """)
+    long countActivityMessages(
+            @Param("chatRoomId") Long chatRoomId,
+            @Param("start") OffsetDateTime start,
+            @Param("end") OffsetDateTime end
+    );
+
+    @Query("""
+            select m.createdAt
+            from Message m
+            where m.chatRoom.id = :chatRoomId
+              and m.createdAt >= :start
+              and m.createdAt < :end
+              and m.deletedAt is null
+              and m.sender is not null
+              and m.type <> com.twogether.backend.chat.domain.MessageType.SYSTEM
+            """)
+    List<OffsetDateTime> findActivityMessageCreatedAt(
+            @Param("chatRoomId") Long chatRoomId,
+            @Param("start") OffsetDateTime start,
+            @Param("end") OffsetDateTime end
     );
 }
