@@ -4,6 +4,7 @@ import com.twogether.backend.chat.dto.request.ChatMessageSendRequest;
 import com.twogether.backend.chat.dto.request.ChatReadRequest;
 import com.twogether.backend.chat.dto.request.ChatNoticeCreateRequest;
 import com.twogether.backend.chat.dto.request.ImageMessageSendRequest;
+import com.twogether.backend.chat.dto.request.ShareTopicRecommendationRequest;
 import com.twogether.backend.chat.dto.response.ChatMessagePageResponse;
 import com.twogether.backend.chat.dto.response.ChatMessageResponse;
 import com.twogether.backend.chat.dto.response.ChatNoticeResponse;
@@ -11,10 +12,12 @@ import com.twogether.backend.chat.dto.response.ChatReadResponse;
 import com.twogether.backend.chat.dto.response.ChatRoomDetailResponse;
 import com.twogether.backend.chat.dto.response.ChatRoomSummaryResponse;
 import com.twogether.backend.chat.dto.response.ChatRoomActivityResponse;
+import com.twogether.backend.chat.dto.response.TopicRecommendationResponse;
 import com.twogether.backend.chat.service.ChatRoomActivityService;
 import com.twogether.backend.chat.service.ChatMessageService;
 import com.twogether.backend.chat.service.ChatNoticeService;
 import com.twogether.backend.chat.service.ChatRoomService;
+import com.twogether.backend.chat.service.TopicRecommendationService;
 import com.twogether.backend.global.response.ApiResponse;
 import com.twogether.backend.global.response.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -47,17 +50,47 @@ public class ChatController {
     private final ChatMessageService chatMessageService;
     private final ChatNoticeService chatNoticeService;
     private final ChatRoomActivityService chatRoomActivityService;
+    private final TopicRecommendationService topicRecommendationService;
 
     public ChatController(
             ChatRoomService chatRoomService,
             ChatMessageService chatMessageService,
             ChatNoticeService chatNoticeService,
-            ChatRoomActivityService chatRoomActivityService
+            ChatRoomActivityService chatRoomActivityService,
+            TopicRecommendationService topicRecommendationService
     ) {
         this.chatRoomService = chatRoomService;
         this.chatMessageService = chatMessageService;
         this.chatNoticeService = chatNoticeService;
         this.chatRoomActivityService = chatRoomActivityService;
+        this.topicRecommendationService = topicRecommendationService;
+    }
+
+    @Operation(
+            summary = "AI 대화 주제 추천",
+            description = "모임 정보와 태그, 현재 참여자의 관심 태그를 사용하며 채팅 메시지 본문은 사용하지 않습니다. 현재는 Mock AI Client를 사용합니다."
+    )
+    @PostMapping("/{chatRoomId}/topic-recommendations")
+    public ResponseEntity<ApiResponse<TopicRecommendationResponse>> recommendTopics(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long chatRoomId
+    ) {
+        TopicRecommendationResponse response = topicRecommendationService.recommend(jwt.getSubject(), chatRoomId);
+        return ResponseEntity.ok(ApiResponse.success("대화 주제 추천에 성공했습니다.", response));
+    }
+
+    @Operation(
+            summary = "추천 대화 주제 공유",
+            description = "추천된 대화 주제를 현재 채팅방에 CARD 메시지로 공유합니다. 현재 참여자만 호출할 수 있습니다."
+    )
+    @PostMapping("/{chatRoomId}/topic-recommendations/share")
+    public ResponseEntity<ApiResponse<ChatMessageResponse>> shareTopic(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long chatRoomId,
+            @Valid @RequestBody ShareTopicRecommendationRequest request
+    ) {
+        ChatMessageResponse response = topicRecommendationService.share(jwt.getSubject(), chatRoomId, request);
+        return ResponseEntity.ok(ApiResponse.success("추천 대화 주제를 공유했습니다.", response));
     }
 
     @Operation(
