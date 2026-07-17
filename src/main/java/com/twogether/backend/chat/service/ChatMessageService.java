@@ -113,11 +113,17 @@ public class ChatMessageService {
 
     @Transactional
     public ChatMessageResponse sendCard(String authUserId, Long roomId, String title, String content) {
+        return sendCard(authUserId, roomId, "TOPIC_RECOMMENDATION", title, content);
+    }
+
+    @Transactional
+    public ChatMessageResponse sendCard(
+            String authUserId, Long roomId, String cardType, String title, String content) {
         User sender = findUser(authUserId);
         ChatRoom room = findRoom(roomId);
         verifyParticipant(roomId, sender.getId());
         Message message = messageRepository.save(Message.card(
-                room, sender, content, Map.of("cardType", "TOPIC_RECOMMENDATION", "title", title, "content", content)));
+                room, sender, content, Map.of("cardType", cardType, "title", title, "content", content)));
         room.updateLastMessage(message.getId(), message.getCreatedAt());
         ChatMessageResponse response = ChatMessageResponse.from(message);
         broadcastAndPublish(roomId, message, sender.getId(), title, response);
