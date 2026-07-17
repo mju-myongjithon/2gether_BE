@@ -160,6 +160,12 @@ public enum ErrorCode {
             "신청을 찾을 수 없습니다."
     ),
 
+    GATHERING_MEMBER_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "GATHERING_MEMBER_NOT_FOUND",
+            "모임 멤버를 찾을 수 없습니다."
+    ),
+
     APPLICATION_ALREADY_PROCESSED(
             HttpStatus.CONFLICT,
             "APPLICATION_ALREADY_PROCESSED",
@@ -188,6 +194,18 @@ public enum ErrorCode {
             HttpStatus.BAD_REQUEST,
             "INVALID_TAG_TYPE",
             "요청한 태그 유형이 올바르지 않습니다."
+    ),
+
+    NOTICE_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "NOTICE_NOT_FOUND",
+            "공지사항을 찾을 수 없습니다."
+    ),
+
+    COMMENT_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "COMMENT_NOT_FOUND",
+            "댓글을 찾을 수 없습니다."
     ),
 
     INTERNAL_SERVER_ERROR(

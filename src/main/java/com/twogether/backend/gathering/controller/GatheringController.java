@@ -29,6 +29,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.List;
+
 @Tag(
         name = "모임 API",
         description = "모임 생성, 조회, 수정, 취소, 확정 관련 API"
@@ -92,11 +94,12 @@ public class GatheringController {
             @Parameter(description = "모임 카테고리 enum 값", example = "HACKATHON") @RequestParam(required = false) String category,
             @Parameter(description = "모임 저장 상태 enum 값", example = "RECRUITING") @RequestParam(required = false) String status,
             @Parameter(description = "제목/내용 검색어") @RequestParam(required = false) String keyword,
+            @Parameter(description = "태그 ID 목록(하나라도 가진 모임 매칭, OR)", example = "1,2") @RequestParam(required = false) List<Long> tagIds,
             @Parameter(description = "페이지 번호") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "20") int size
     ) {
         PageResponse<GatheringSummaryResponse> response =
-                gatheringService.getGatherings(category, status, keyword, page, size);
+                gatheringService.getGatherings(category, status, keyword, tagIds, page, size);
 
         return ResponseEntity.ok(
                 ApiResponse.success("모임 목록 조회에 성공했습니다.", response)

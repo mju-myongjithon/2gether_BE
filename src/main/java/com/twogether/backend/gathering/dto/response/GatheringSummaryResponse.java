@@ -34,6 +34,12 @@ public record GatheringSummaryResponse(
         @Schema(description = "저장 상태(RECRUITING/CONFIRMED/COMPLETED/CANCELED)", example = "RECRUITING")
         GatheringStatus status,
 
+        @Schema(description = "모집 시작 일시", example = "2026-07-01T09:00:00+09:00")
+        OffsetDateTime recruitStartAt,
+
+        @Schema(description = "모집 종료 일시", example = "2026-07-10T23:59:59+09:00")
+        OffsetDateTime recruitEndAt,
+
         @Schema(
                 description = "화면 표시 상태(모집 기간·현재 시각 기준 파생값)",
                 example = "RECRUITING",
@@ -62,6 +68,7 @@ public record GatheringSummaryResponse(
      */
     public static GatheringSummaryResponse of(
             Gathering gathering,
+            int currentMemberCount,
             List<String> tags,
             String hostDepartmentName,
             OffsetDateTime now
@@ -80,9 +87,11 @@ public record GatheringSummaryResponse(
                 gathering.getCategory().name(),
                 gathering.getLocation(),
                 gathering.getMaxMembers(),
-                gathering.getCurrentMembers(),
+                currentMemberCount,
                 gathering.isFusionEnabled(),
                 gathering.getStatus(),
+                gathering.getRecruitStartAt(),
+                gathering.getRecruitEndAt(),
                 gathering.displayStatus(now),
                 gathering.getMeetAt(),
                 tags,

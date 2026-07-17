@@ -8,6 +8,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -59,18 +61,36 @@ public class GatheringMemberController {
                     일반 멤버만 나갈 수 있습니다.
 
                     방장은 바로 나갈 수 없고, 모임 취소 또는 방장 위임 정책이 필요합니다.
-
-                    현재 Swagger 명세 단계에서는 실제 DB에 반영하지 않고
-                    성공 응답만 반환합니다.
                     """
     )
     @SecurityRequirement(name = "Bearer Authentication")
     @DeleteMapping("/me")
     public ResponseEntity<ApiResponse<Void>> leaveGathering(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long gatheringId
     ) {
+        gatheringMemberService.leaveMember(jwt.getSubject(), gatheringId);
+
         return ResponseEntity.ok(
                 ApiResponse.success("모임에서 나갔습니다.")
+        );
+    }
+
+    @Operation(
+            summary = "멤버 추방",
+            description = "방장만 특정 멤버를 모임에서 추방할 수 있습니다. 추방 시 멤버와 연결된 수락 신청도 함께 삭제됩니다."
+    )
+    @SecurityRequirement(name = "Bearer Authentication")
+    @DeleteMapping("/{userId}")
+    public ResponseEntity<ApiResponse<Void>> expelMember(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long gatheringId,
+            @PathVariable Long userId
+    ) {
+        gatheringMemberService.expelMember(jwt.getSubject(), gatheringId, userId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("멤버를 추방했습니다.")
         );
     }
 }
