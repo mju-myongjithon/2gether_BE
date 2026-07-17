@@ -139,6 +139,10 @@ public class ChatRoomMember {
         this.leftAt = null;
     }
 
+    public void promoteToOwner() {
+        this.role = ChatMemberRole.OWNER;
+    }
+
     public boolean isParticipating() {
         return this.leftAt == null;
     }

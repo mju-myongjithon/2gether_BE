@@ -1,10 +1,12 @@
 package com.twogether.backend.chat.service;
 
+import com.twogether.backend.chat.domain.ChatMemberRole;
 import com.twogether.backend.chat.domain.ChatRoom;
 import com.twogether.backend.chat.domain.ChatRoomMember;
 import com.twogether.backend.chat.domain.Message;
 import com.twogether.backend.chat.dto.request.ChatReadRequest;
 import com.twogether.backend.chat.dto.response.ChatReadResponse;
+import com.twogether.backend.chat.dto.response.ChatMessageResponse;
 import com.twogether.backend.chat.dto.response.ChatNoticeResponse;
 import com.twogether.backend.chat.dto.response.ChatRoomDetailResponse;
 import com.twogether.backend.chat.dto.response.ChatRoomMemberResponse;
@@ -20,6 +22,7 @@ import com.twogether.backend.global.exception.ErrorCode;
 import com.twogether.backend.global.response.PageResponse;
 import com.twogether.backend.user.domain.User;
 import com.twogether.backend.user.repository.UserRepository;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,6 +54,7 @@ public class ChatRoomService {
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
     private final DepartmentRepository departmentRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     public ChatRoomService(
             ChatRoomRepository chatRoomRepository,
@@ -58,7 +62,8 @@ public class ChatRoomService {
             ChatRoomMemberRepository chatRoomMemberRepository,
             MessageRepository messageRepository,
             UserRepository userRepository,
-            DepartmentRepository departmentRepository
+            DepartmentRepository departmentRepository,
+            SimpMessagingTemplate messagingTemplate
     ) {
         this.chatRoomRepository = chatRoomRepository;
         this.chatNoticeRepository = chatNoticeRepository;
@@ -66,6 +71,7 @@ public class ChatRoomService {
         this.messageRepository = messageRepository;
         this.userRepository = userRepository;
         this.departmentRepository = departmentRepository;
+        this.messagingTemplate = messagingTemplate;
     }
 
     // ==================== 생성 (C2) ====================
@@ -358,6 +364,75 @@ public class ChatRoomService {
                 .countByChatRoomIdAndIdGreaterThan(roomId, newLastRead);
 
         return new ChatReadResponse(roomId, newLastRead, unreadCount);
+    }
+
+    private static final String BROADCAST_DESTINATION_PREFIX = "/sub/chat/rooms/";
+
+    /**
+     * 채팅방에서 나간다(소프트: left_at 세팅). 메시지 이력은 보존되고 목록/상세에서 제외된다.
+     *
+     * <p>퇴장 SYSTEM 메시지를 발행/브로드캐스트한다. 방장이 나가면 남은 참여자 중 가장 먼저
+     * 입장한 사람에게 방장을 위임하고, 남은 참여자가 없으면 방을 종료(closed_at)한다.</p>
+     */
+    @Transactional
+    public void leave(
+            String authUserId,
+            Long roomId
+    ) {
+        User me = findUser(authUserId);
+
+        ChatRoom room = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CHAT_ROOM_NOT_FOUND));
+
+        ChatRoomMember membership = chatRoomMemberRepository
+                .findByChatRoomIdAndUserId(roomId, me.getId())
+                .filter(ChatRoomMember::isParticipating)
+                .orElseThrow(() -> new BusinessException(ErrorCode.FORBIDDEN));
+
+        boolean wasOwner = membership.getRole() == ChatMemberRole.OWNER;
+        membership.leave();
+
+        publishSystemMessage(
+                room,
+                me.getNickname() + "님이 나갔습니다.",
+                Map.of("systemType", "MEMBER_LEFT", "userId", me.getId())
+        );
+
+        // leave() 로 인한 left_at 갱신은 아래 조회 시 auto-flush 되어 반영된다.
+        List<ChatRoomMember> remaining = chatRoomMemberRepository
+                .findAllByChatRoomIdAndLeftAtIsNull(roomId);
+
+        if (remaining.isEmpty()) {
+            room.close();
+            return;
+        }
+
+        if (wasOwner) {
+            ChatRoomMember successor = remaining.stream()
+                    .min(Comparator.comparing(ChatRoomMember::getJoinedAt))
+                    .orElseThrow();
+            successor.promoteToOwner();
+            publishSystemMessage(
+                    room,
+                    successor.getUser().getNickname() + "님이 방장이 되었습니다.",
+                    Map.of("systemType", "OWNER_DELEGATED", "userId", successor.getUser().getId())
+            );
+        }
+    }
+
+    private void publishSystemMessage(
+            ChatRoom room,
+            String content,
+            Map<String, Object> meta
+    ) {
+        Message systemMessage = messageRepository.save(
+                Message.system(room, content, meta)
+        );
+        room.updateLastMessage(systemMessage.getId(), systemMessage.getCreatedAt());
+        messagingTemplate.convertAndSend(
+                BROADCAST_DESTINATION_PREFIX + room.getId(),
+                ChatMessageResponse.from(systemMessage)
+        );
     }
 
     private User findUser(
