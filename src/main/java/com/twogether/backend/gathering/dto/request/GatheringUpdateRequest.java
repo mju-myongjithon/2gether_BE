@@ -40,8 +40,18 @@ public record GatheringUpdateRequest(
         @Schema(description = "인문X자연 융합 모임 여부(미전송 시 유지)", example = "true")
         Boolean fusionEnabled,
 
+        @Schema(description = "모임 일정 형태(미전송 시 유지)", example = "SINGLE")
+        String meetingType,
+
         @Schema(description = "모임 예정 일시 ISO 8601(미전송 시 유지)", example = "2026-07-16T18:00:00+09:00")
         OffsetDateTime meetAt,
+
+        @Schema(description = "모임 종료 일시 또는 종료 날짜(미전송 시 유지)", example = "2026-08-15T18:00:00+09:00")
+        OffsetDateTime meetingEndAt,
+
+        @Schema(description = "반복 일정 설명(미전송 시 유지)", example = "매주 화/목 19:00")
+        @Size(max = 255, message = "반복 일정 설명은 255자 이하로 입력해주세요.")
+        String repeatRule,
 
         @Schema(description = "모임 태그 ID 목록(미전송 시 유지, 목록 전송 시 통째 교체, 빈 목록이면 전체 삭제)", example = "[1, 2]")
         List<Long> tagIds,

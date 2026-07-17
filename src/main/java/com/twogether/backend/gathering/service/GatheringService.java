@@ -6,6 +6,7 @@ import com.twogether.backend.gathering.domain.Gathering;
 import com.twogether.backend.gathering.domain.GatheringCategory;
 import com.twogether.backend.gathering.domain.GatheringImage;
 import com.twogether.backend.gathering.domain.GatheringMember;
+import com.twogether.backend.gathering.domain.GatheringMeetingType;
 import com.twogether.backend.gathering.domain.GatheringStatus;
 import com.twogether.backend.gathering.domain.GatheringTag;
 import com.twogether.backend.gathering.dto.request.GatheringCreateRequest;
@@ -16,7 +17,9 @@ import com.twogether.backend.gathering.dto.response.GatheringCreateResponse;
 import com.twogether.backend.gathering.dto.response.GatheringDetailResponse;
 import com.twogether.backend.gathering.dto.response.GatheringSummaryResponse;
 import com.twogether.backend.gathering.dto.response.GatheringUpdateResponse;
+import com.twogether.backend.gathering.dto.response.MyGatheringResponse;
 import com.twogether.backend.gatheringapplication.domain.ApplicationStatus;
+import com.twogether.backend.gatheringmember.domain.GatheringMemberRole;
 import com.twogether.backend.gatheringmember.dto.response.GatheringMemberResponse;
 import com.twogether.backend.gathering.repository.GatheringImageRepository;
 import com.twogether.backend.gathering.repository.GatheringMemberRepository;
@@ -88,6 +91,7 @@ public class GatheringService {
             String category,
             String status,
             String keyword,
+            List<Long> tagIds,
             int page,
             int size
     ) {
@@ -97,7 +101,8 @@ public class GatheringService {
         Specification<Gathering> spec = Specification.allOf(
                 GatheringSpecification.categoryEquals(categoryFilter),
                 GatheringSpecification.statusEquals(statusFilter),
-                GatheringSpecification.keywordContains(keyword)
+                GatheringSpecification.keywordContains(keyword),
+                GatheringSpecification.hasAnyTag(tagIds)
         );
 
         Pageable pageable = PageRequest.of(
@@ -111,11 +116,13 @@ public class GatheringService {
 
         Map<Long, List<String>> tagsByGathering = loadTagsByGathering(gatherings);
         Map<Long, String> departmentNameById = loadHostDepartmentNames(gatherings);
+        Map<Long, Integer> memberCountByGathering = loadMemberCounts(gatherings);
 
         OffsetDateTime now = OffsetDateTime.now();
         List<GatheringSummaryResponse> content = gatherings.stream()
                 .map(gathering -> GatheringSummaryResponse.of(
                         gathering,
+                        memberCountByGathering.getOrDefault(gathering.getId(), 0),
                         tagsByGathering.getOrDefault(gathering.getId(), List.of()),
                         departmentNameById.get(gathering.getHost().getDepartmentId()),
                         now
@@ -191,6 +198,59 @@ public class GatheringService {
                 .collect(Collectors.toMap(Department::getId, Department::getName));
     }
 
+    public List<MyGatheringResponse> getMyGatherings(
+            String authUserId
+    ) {
+        User me = userRepository.findByAuthUserId(authUserId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        List<com.twogether.backend.gathering.domain.GatheringMember> myMemberships = gatheringMemberRepository.findByUserIdWithGathering(me.getId());
+        if (myMemberships.isEmpty()) {
+            return List.of();
+        }
+
+        List<Gathering> gatherings = myMemberships.stream()
+                .map(com.twogether.backend.gathering.domain.GatheringMember::getGathering)
+                .distinct()
+                .toList();
+
+        Map<Long, List<String>> tagsByGathering = loadTagsByGathering(gatherings);
+        Map<Long, Integer> memberCountByGathering = loadMemberCounts(gatherings);
+        Map<Long, GatheringMemberRole> roleByGathering = myMemberships.stream()
+                .collect(Collectors.toMap(
+                        membership -> membership.getGathering().getId(),
+                        com.twogether.backend.gathering.domain.GatheringMember::getRole,
+                        (first, second) -> first
+                ));
+
+        return gatherings.stream()
+                .map(gathering -> MyGatheringResponse.of(
+                        gathering,
+                        memberCountByGathering.getOrDefault(gathering.getId(), 0),
+                        roleByGathering.getOrDefault(gathering.getId(), GatheringMemberRole.MEMBER),
+                        tagsByGathering.getOrDefault(gathering.getId(), List.of())
+                ))
+                .toList();
+    }
+
+    private Map<Long, Integer> loadMemberCounts(
+            List<Gathering> gatherings
+    ) {
+        if (gatherings.isEmpty()) {
+            return Map.of();
+        }
+
+        List<Long> gatheringIds = gatherings.stream()
+                .map(Gathering::getId)
+                .toList();
+
+        return gatheringMemberRepository.countMembersByGatheringIds(gatheringIds).stream()
+                .collect(Collectors.toMap(
+                        GatheringMemberRepository.GatheringMemberCount::getGatheringId,
+                        result -> Math.toIntExact(result.getMemberCount())
+                ));
+    }
+
     /**
      * 모임 상세 조회.
      *
@@ -211,17 +271,22 @@ public class GatheringService {
         List<GatheringMember> members =
                 gatheringMemberRepository.findByGatheringIdWithUser(gatheringId);
 
-        Map<Long, String> departmentNameById = resolveDepartmentNames(gathering, members);
+        Map<Long, com.twogether.backend.department.domain.Department> departmentMap = resolveDepartments(gathering, members);
 
         List<GatheringMemberResponse> memberResponses = members.stream()
-                .map(member -> new GatheringMemberResponse(
-                        member.getUser().getId(),
-                        member.getUser().getNickname(),
-                        member.getRole(),
-                        departmentNameById.get(member.getUser().getDepartmentId()),
-                        // 캠퍼스 비율 기능 제외 → campus 는 null 처리(설계 확정)
-                        null
-                ))
+                .map(member -> {
+                    com.twogether.backend.department.domain.Department dept = departmentMap.get(member.getUser().getDepartmentId());
+                    String campusName = (dept != null && dept.getCollege() != null && dept.getCollege().getCampus() != null)
+                            ? dept.getCollege().getCampus().name()
+                            : null;
+                    return new GatheringMemberResponse(
+                            member.getUser().getId(),
+                            member.getUser().getNickname(),
+                            member.getRole(),
+                            dept != null ? dept.getName() : null,
+                            campusName
+                    );
+                })
                 .toList();
 
         List<String> tags = gatheringTagRepository
@@ -250,9 +315,16 @@ public class GatheringService {
         // 신청(application) 도메인 미구현 → 이슈8에서 실제 조회로 대체
         ApplicationStatus myApplicationStatus = null;
 
+        com.twogether.backend.department.domain.Department hostDept = departmentMap.get(gathering.getHost().getDepartmentId());
+        String hostDeptName = hostDept != null ? hostDept.getName() : null;
+        String hostCampus = (hostDept != null && hostDept.getCollege() != null && hostDept.getCollege().getCampus() != null)
+                ? hostDept.getCollege().getCampus().name()
+                : null;
+
         return GatheringDetailResponse.of(
                 gathering,
-                departmentNameById.get(gathering.getHost().getDepartmentId()),
+                hostDeptName,
+                hostCampus,
                 memberResponses,
                 tags,
                 images,
@@ -263,7 +335,7 @@ public class GatheringService {
         );
     }
 
-    private Map<Long, String> resolveDepartmentNames(
+    private Map<Long, com.twogether.backend.department.domain.Department> resolveDepartments(
             Gathering gathering,
             List<GatheringMember> members
     ) {
@@ -281,7 +353,7 @@ public class GatheringService {
         }
 
         return departmentRepository.findAllById(departmentIds).stream()
-                .collect(Collectors.toMap(Department::getId, Department::getName));
+                .collect(Collectors.toMap(com.twogether.backend.department.domain.Department::getId, dept -> dept));
     }
 
     /**
@@ -318,6 +390,11 @@ public class GatheringService {
                 ? request.fusionEnabled()
                 : gathering.isFusionEnabled();
         OffsetDateTime meetAt = request.meetAt() != null ? request.meetAt() : gathering.getMeetAt();
+        GatheringMeetingType meetingType = request.meetingType() != null
+                ? parseMeetingType(request.meetingType())
+                : gathering.getMeetingType();
+        OffsetDateTime meetingEndAt = request.meetingEndAt() != null ? request.meetingEndAt() : gathering.getMeetingEndAt();
+        String repeatRule = request.repeatRule() != null ? request.repeatRule() : gathering.getRepeatRule();
 
         GatheringCategory parsedCategory = parseCategory(request.category());
         GatheringCategory category = parsedCategory != null ? parsedCategory : gathering.getCategory();
@@ -331,7 +408,8 @@ public class GatheringService {
             maxMembers = request.maxMembers().shortValue();
         }
 
-        gathering.update(title, content, category, location, maxMembers, fusionEnabled, meetAt);
+                validateMeetingSchedule(meetingType, meetAt, meetingEndAt);
+                gathering.update(title, content, category, location, maxMembers, fusionEnabled, meetAt, meetingType, meetingEndAt, repeatRule);
 
         // 태그/이미지: 목록이 오면 전체 교체(availability와 동일 패턴)
         if (request.tagIds() != null) {
@@ -440,8 +518,13 @@ public class GatheringService {
                 request.fusionEnabled(),
                 request.recruitStartAt(),
                 request.recruitEndAt(),
-                request.meetAt()
+                request.meetAt(),
+                request.meetingType(),
+                request.meetingEndAt(),
+                request.repeatRule()
         );
+
+        validateMeetingSchedule(request.meetingType(), request.meetAt(), request.meetingEndAt());
         gatheringRepository.save(gathering);
 
         // 방장을 HOST 멤버로 등록 (current_members는 엔티티 생성 시 1로 시작)
@@ -454,6 +537,42 @@ public class GatheringService {
 
         return GatheringCreateResponse.from(gathering);
     }
+
+        private GatheringMeetingType parseMeetingType(
+                        String meetingType
+        ) {
+                if (meetingType == null || meetingType.isBlank()) {
+                        return GatheringMeetingType.SINGLE;
+                }
+                try {
+                        return GatheringMeetingType.valueOf(meetingType.trim().toUpperCase());
+                } catch (IllegalArgumentException e) {
+                        throw new BusinessException(ErrorCode.INVALID_REQUEST);
+                }
+        }
+
+        private void validateMeetingSchedule(
+                        GatheringMeetingType meetingType,
+                        OffsetDateTime meetAt,
+                        OffsetDateTime meetingEndAt
+        ) {
+                GatheringMeetingType resolvedType = meetingType != null ? meetingType : GatheringMeetingType.SINGLE;
+                if (meetAt == null) {
+                        throw new BusinessException(ErrorCode.INVALID_REQUEST);
+                }
+                if (resolvedType == GatheringMeetingType.SINGLE) {
+                        if (meetingEndAt != null) {
+                                throw new BusinessException(ErrorCode.INVALID_REQUEST);
+                        }
+                        return;
+                }
+                if (meetingEndAt == null) {
+                        throw new BusinessException(ErrorCode.INVALID_REQUEST);
+                }
+                if (!meetingEndAt.isAfter(meetAt)) {
+                        throw new BusinessException(ErrorCode.INVALID_REQUEST);
+                }
+        }
 
     private void saveTags(
             Gathering gathering,

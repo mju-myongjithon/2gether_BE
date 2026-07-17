@@ -160,6 +160,12 @@ public enum ErrorCode {
             "신청을 찾을 수 없습니다."
     ),
 
+    GATHERING_MEMBER_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "GATHERING_MEMBER_NOT_FOUND",
+            "모임 멤버를 찾을 수 없습니다."
+    ),
+
     APPLICATION_ALREADY_PROCESSED(
             HttpStatus.CONFLICT,
             "APPLICATION_ALREADY_PROCESSED",
@@ -190,6 +196,42 @@ public enum ErrorCode {
             "요청한 태그 유형이 올바르지 않습니다."
     ),
 
+    NOTICE_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "NOTICE_NOT_FOUND",
+            "공지사항을 찾을 수 없습니다."
+    ),
+
+    COMMENT_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "COMMENT_NOT_FOUND",
+            "댓글을 찾을 수 없습니다."
+    ),
+  
+    RECOMMENDATION_GATHERING_MISMATCH(
+            HttpStatus.BAD_REQUEST,
+            "RECOMMENDATION_GATHERING_MISMATCH",
+            "경로의 모임 ID와 요청 본문의 모임 ID가 일치하지 않습니다."
+    ),
+
+    RECOMMENDATION_CANDIDATE_EMPTY(
+            HttpStatus.BAD_REQUEST,
+            "RECOMMENDATION_CANDIDATE_EMPTY",
+            "추천 가능한 후보 사용자가 없습니다."
+    ),
+
+    RECOMMENDATION_CANDIDATE_LIMIT_EXCEEDED(
+            HttpStatus.BAD_REQUEST,
+            "RECOMMENDATION_CANDIDATE_LIMIT_EXCEEDED",
+            "AI 추천 후보는 최대 20명까지 전달할 수 있습니다."
+    ),
+
+    INVALID_RECOMMENDATION_COUNT(
+            HttpStatus.BAD_REQUEST,
+            "INVALID_RECOMMENDATION_COUNT",
+            "추천 인원은 1명 이상이며 후보 사용자 수보다 많을 수 없습니다."
+    ),
+  
     CHAT_ROOM_NOT_FOUND(
             HttpStatus.NOT_FOUND,
             "CHAT_ROOM_NOT_FOUND",

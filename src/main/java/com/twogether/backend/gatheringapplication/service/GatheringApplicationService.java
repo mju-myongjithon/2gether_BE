@@ -15,6 +15,8 @@ import com.twogether.backend.gatheringapplication.dto.response.GatheringApplicat
 import com.twogether.backend.gatheringapplication.dto.response.GatheringApplicationCreateResponse;
 import com.twogether.backend.gatheringapplication.dto.response.GatheringApplicationRejectResponse;
 import com.twogether.backend.gatheringapplication.dto.response.GatheringApplicationResponse;
+import com.twogether.backend.gatheringapplication.dto.response.GatheringBriefResponse;
+import com.twogether.backend.gatheringapplication.dto.response.MyApplicationResponse;
 import com.twogether.backend.gatheringapplication.repository.GatheringApplicationRepository;
 import com.twogether.backend.global.exception.BusinessException;
 import com.twogether.backend.global.exception.ErrorCode;
@@ -153,6 +155,77 @@ public class GatheringApplicationService {
                 applicationPage.getTotalElements()
         );
     }
+
+    /**
+     * 로그인한 사용자의 신청 목록을 최신순으로 조회한다.
+     */
+    public PageResponse<MyApplicationResponse> getMyApplications(
+            String authUserId,
+            int page,
+            int size
+    ) {
+        User me = userRepository.findByAuthUserId(authUserId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        Pageable pageable = PageRequest.of(
+                page,
+                size,
+                Sort.by(Sort.Direction.DESC, "appliedAt")
+        );
+
+        Page<GatheringApplication> applicationPage = gatheringApplicationRepository.findByUserId(me.getId(), pageable);
+
+        List<MyApplicationResponse> content = applicationPage.getContent().stream()
+                .map(application -> new MyApplicationResponse(
+                        application.getId(),
+                        application.getStatus(),
+                        application.getAppliedAt(),
+                        new GatheringBriefResponse(
+                                application.getGathering().getId(),
+                                application.getGathering().getTitle(),
+                                application.getGathering().getCategory().name(),
+                                application.getGathering().getStatus()
+                        )
+                ))
+                .toList();
+
+        return PageResponse.of(
+                content,
+                page,
+                size,
+                applicationPage.getTotalElements()
+        );
+    }
+
+        /**
+         * 로그인한 사용자의 본인 신청을 취소한다.
+         *
+         * PENDING 신청만 취소 가능하며, 취소 시 신청 레코드를 삭제한다.
+         */
+        @Transactional
+        public void cancelMyApplication(
+                        String authUserId,
+                        Long applicationId
+        ) {
+                User me = userRepository.findByAuthUserId(authUserId)
+                                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+                GatheringApplication application = gatheringApplicationRepository.findDetailById(applicationId)
+                                .orElseThrow(() -> new BusinessException(ErrorCode.APPLICATION_NOT_FOUND));
+
+                if (!application.getUser().getId().equals(me.getId())) {
+                        throw new BusinessException(ErrorCode.FORBIDDEN);
+                }
+                if (!application.isPending()) {
+                        throw new BusinessException(ErrorCode.APPLICATION_ALREADY_PROCESSED);
+                }
+
+                gatheringApplicationRepository.deleteByGatheringIdAndUserIdAndStatus(
+                                application.getGathering().getId(),
+                                me.getId(),
+                                ApplicationStatus.PENDING
+                );
+        }
 
     /**
      * 신청 수락(원자적).

@@ -36,6 +36,12 @@ public interface GatheringApplicationRepository
             @Param("id") Long id
     );
 
+    Optional<GatheringApplication> findByGatheringIdAndUserIdAndStatus(
+            Long gatheringId,
+            Long userId,
+            ApplicationStatus status
+    );
+
     // 방장의 신청함(전체): 신청자(user)를 함께 로딩(N+1 회피)
     @EntityGraph(attributePaths = "user")
     Page<GatheringApplication> findByGatheringId(
@@ -49,5 +55,17 @@ public interface GatheringApplicationRepository
             Long gatheringId,
             ApplicationStatus status,
             Pageable pageable
+    );
+
+    @EntityGraph(attributePaths = "gathering")
+    Page<GatheringApplication> findByUserId(
+            Long userId,
+            Pageable pageable
+    );
+
+    void deleteByGatheringIdAndUserIdAndStatus(
+            Long gatheringId,
+            Long userId,
+            ApplicationStatus status
     );
 }

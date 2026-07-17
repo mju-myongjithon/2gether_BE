@@ -1,14 +1,11 @@
 package com.twogether.backend.gatheringapplication.controller;
 
-import com.twogether.backend.gathering.domain.GatheringStatus;
-import com.twogether.backend.gatheringapplication.domain.ApplicationStatus;
 import com.twogether.backend.gatheringapplication.dto.request.GatheringApplicationCreateRequest;
 import com.twogether.backend.gatheringapplication.dto.request.GatheringApplicationRejectRequest;
 import com.twogether.backend.gatheringapplication.dto.response.GatheringApplicationAcceptResponse;
 import com.twogether.backend.gatheringapplication.dto.response.GatheringApplicationCreateResponse;
 import com.twogether.backend.gatheringapplication.dto.response.GatheringApplicationRejectResponse;
 import com.twogether.backend.gatheringapplication.dto.response.GatheringApplicationResponse;
-import com.twogether.backend.gatheringapplication.dto.response.GatheringBriefResponse;
 import com.twogether.backend.gatheringapplication.dto.response.MyApplicationResponse;
 import com.twogether.backend.gatheringapplication.service.GatheringApplicationService;
 import com.twogether.backend.global.response.ApiResponse;
@@ -23,14 +20,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.time.OffsetDateTime;
-import java.util.List;
 
 @Tag(
         name = "모임 신청 API",
@@ -103,34 +98,35 @@ public class GatheringApplicationController {
                     현재 로그인한 사용자가 신청한 모임 목록을 조회합니다.
 
                     페이지네이션은 page=0, size=20 방식을 기본으로 합니다.
-
-                    현재 Swagger 명세 단계에서는 더미 신청 목록을 반환합니다.
                     """
     )
     @GetMapping("/api/users/me/applications")
     public ResponseEntity<ApiResponse<PageResponse<MyApplicationResponse>>> getMyApplications(
+            @AuthenticationPrincipal Jwt jwt,
             @Parameter(description = "페이지 번호") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "페이지 크기") @RequestParam(defaultValue = "20") int size
     ) {
-        GatheringBriefResponse gathering = new GatheringBriefResponse(
-                1L,
-                "인문X자연 해커톤 팀 모집",
-                "해커톤",
-                GatheringStatus.RECRUITING
-        );
-
-        MyApplicationResponse response = new MyApplicationResponse(
-                1L,
-                ApplicationStatus.PENDING,
-                OffsetDateTime.parse("2026-07-09T19:30:00+09:00"),
-                gathering
-        );
-
         PageResponse<MyApplicationResponse> pageResponse =
-                PageResponse.of(List.of(response), page, size, 1);
+                gatheringApplicationService.getMyApplications(jwt.getSubject(), page, size);
 
         return ResponseEntity.ok(
                 ApiResponse.success("내 신청 목록 조회에 성공했습니다.", pageResponse)
+        );
+    }
+
+    @Operation(
+            summary = "내 신청 취소",
+            description = "본인이 신청한 PENDING 신청만 취소할 수 있으며, 취소 시 신청 레코드를 삭제합니다."
+    )
+    @DeleteMapping("/api/gathering-applications/{applicationId}")
+    public ResponseEntity<ApiResponse<Void>> cancelMyApplication(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long applicationId
+    ) {
+        gatheringApplicationService.cancelMyApplication(jwt.getSubject(), applicationId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("신청이 취소되었습니다.")
         );
     }
 

@@ -1,6 +1,8 @@
 package com.twogether.backend.user.controller;
 
 import com.twogether.backend.global.response.ApiResponse;
+import com.twogether.backend.gathering.dto.response.MyGatheringResponse;
+import com.twogether.backend.gathering.service.GatheringService;
 import com.twogether.backend.user.dto.request.OnboardingUpdateRequest;
 import com.twogether.backend.user.dto.request.ProfileImageUpdateRequest;
 import com.twogether.backend.user.dto.response.MyProfileResponse;
@@ -22,6 +24,9 @@ import com.twogether.backend.user.dto.request.IntroductionUpdateRequest;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import com.twogether.backend.user.dto.response.UserProfileResponse;
 import org.springframework.web.bind.annotation.PathVariable;
+import com.twogether.backend.global.response.PageResponse;
+
+import java.util.List;
 
 @Tag(
         name = "사용자 API",
@@ -32,9 +37,11 @@ import org.springframework.web.bind.annotation.PathVariable;
 public class UserController {
 
     private final UserService userService;
+        private final GatheringService gatheringService;
 
-    public UserController(UserService userService) {
+        public UserController(UserService userService, GatheringService gatheringService) {
         this.userService = userService;
+                this.gatheringService = gatheringService;
     }
 
     @Operation(
@@ -91,6 +98,33 @@ public class UserController {
                 ApiResponse.success(
                         "내 프로필 조회에 성공했습니다.",
                         profile
+                )
+        );
+    }
+
+    @Operation(
+            summary = "내 참여 모임 조회",
+            description = "현재 로그인한 사용자가 참여 중인 모임 목록을 방장/멤버 역할과 함께 조회합니다."
+    )
+    @SecurityRequirement(name = "Bearer Authentication")
+    @GetMapping("/me/gatherings")
+    public ResponseEntity<ApiResponse<PageResponse<MyGatheringResponse>>> getMyGatherings(
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        String authUserId = jwt.getSubject();
+        List<MyGatheringResponse> myGatherings = gatheringService.getMyGatherings(authUserId);
+
+        PageResponse<MyGatheringResponse> response = PageResponse.of(
+                myGatherings,
+                0,
+                Math.max(myGatherings.size(), 1),
+                myGatherings.size()
+        );
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "내 참여 모임 조회에 성공했습니다.",
+                        response
                 )
         );
     }
