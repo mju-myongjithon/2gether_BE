@@ -292,6 +292,54 @@ public enum ErrorCode {
             "채팅방을 찾을 수 없습니다."
     ),
 
+    CHAT_ROOM_ACCESS_DENIED(
+            HttpStatus.FORBIDDEN,
+            "CHAT_ROOM_ACCESS_DENIED",
+            "채팅방에 접근할 권한이 없습니다."
+    ),
+
+    TOPIC_RECOMMENDATION_NOT_AVAILABLE(
+            HttpStatus.BAD_REQUEST,
+            "TOPIC_RECOMMENDATION_NOT_AVAILABLE",
+            "모임과 연결된 채팅방에서만 대화 주제를 추천할 수 있습니다."
+    ),
+
+    AI_RECOMMENDATION_FAILED(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "AI_RECOMMENDATION_FAILED",
+            "대화 주제 추천 결과를 생성하지 못했습니다."
+    ),
+
+    MISSION_RECOMMENDATION_NOT_AVAILABLE(
+            HttpStatus.BAD_REQUEST,
+            "MISSION_RECOMMENDATION_NOT_AVAILABLE",
+            "모임과 연결된 채팅방에서만 모임 미션을 추천할 수 있습니다."
+    ),
+
+    MISSION_RECOMMENDATION_FAILED(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "MISSION_RECOMMENDATION_FAILED",
+            "모임 미션 추천 결과를 생성하지 못했습니다."
+    ),
+
+    CONTENT_RECOMMENDATION_FAILED(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "CONTENT_RECOMMENDATION_FAILED",
+            "맞춤 콘텐츠 추천 결과를 생성하지 못했습니다."
+    ),
+
+    INVALID_RECOMMENDATION_URL(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "INVALID_RECOMMENDATION_URL",
+            "추천 콘텐츠 URL이 안전하지 않습니다."
+    ),
+
+    AI_CLIENT_NOT_CONFIGURED(
+            HttpStatus.SERVICE_UNAVAILABLE,
+            "AI_CLIENT_NOT_CONFIGURED",
+            "웹 검색 AI Client가 설정되지 않았습니다."
+    ),
+
     CHAT_NOTICE_NOT_FOUND(
             HttpStatus.NOT_FOUND,
             "CHAT_NOTICE_NOT_FOUND",

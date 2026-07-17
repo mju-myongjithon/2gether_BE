@@ -4,15 +4,23 @@ import com.twogether.backend.chat.dto.request.ChatMessageSendRequest;
 import com.twogether.backend.chat.dto.request.ChatReadRequest;
 import com.twogether.backend.chat.dto.request.ChatNoticeCreateRequest;
 import com.twogether.backend.chat.dto.request.ImageMessageSendRequest;
+import com.twogether.backend.chat.dto.request.ShareTopicRecommendationRequest;
+import com.twogether.backend.chat.dto.request.ShareMissionRecommendationRequest;
 import com.twogether.backend.chat.dto.response.ChatMessagePageResponse;
 import com.twogether.backend.chat.dto.response.ChatMessageResponse;
 import com.twogether.backend.chat.dto.response.ChatNoticeResponse;
 import com.twogether.backend.chat.dto.response.ChatReadResponse;
 import com.twogether.backend.chat.dto.response.ChatRoomDetailResponse;
 import com.twogether.backend.chat.dto.response.ChatRoomSummaryResponse;
+import com.twogether.backend.chat.dto.response.ChatRoomActivityResponse;
+import com.twogether.backend.chat.dto.response.TopicRecommendationResponse;
+import com.twogether.backend.chat.dto.response.MissionRecommendationResponse;
+import com.twogether.backend.chat.service.ChatRoomActivityService;
 import com.twogether.backend.chat.service.ChatMessageService;
 import com.twogether.backend.chat.service.ChatNoticeService;
 import com.twogether.backend.chat.service.ChatRoomService;
+import com.twogether.backend.chat.service.TopicRecommendationService;
+import com.twogether.backend.chat.service.MissionRecommendationService;
 import com.twogether.backend.global.response.ApiResponse;
 import com.twogether.backend.global.response.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -44,15 +52,98 @@ public class ChatController {
     private final ChatRoomService chatRoomService;
     private final ChatMessageService chatMessageService;
     private final ChatNoticeService chatNoticeService;
+    private final ChatRoomActivityService chatRoomActivityService;
+    private final TopicRecommendationService topicRecommendationService;
+    private final MissionRecommendationService missionRecommendationService;
 
     public ChatController(
             ChatRoomService chatRoomService,
             ChatMessageService chatMessageService,
-            ChatNoticeService chatNoticeService
+            ChatNoticeService chatNoticeService,
+            ChatRoomActivityService chatRoomActivityService,
+            TopicRecommendationService topicRecommendationService,
+            MissionRecommendationService missionRecommendationService
     ) {
         this.chatRoomService = chatRoomService;
         this.chatMessageService = chatMessageService;
         this.chatNoticeService = chatNoticeService;
+        this.chatRoomActivityService = chatRoomActivityService;
+        this.topicRecommendationService = topicRecommendationService;
+        this.missionRecommendationService = missionRecommendationService;
+    }
+
+    @Operation(
+            summary = "AI 대화 주제 추천",
+            description = "모임 정보와 태그, 현재 참여자의 관심 태그를 사용하며 채팅 메시지 본문은 사용하지 않습니다. 현재는 Mock AI Client를 사용합니다."
+    )
+    @PostMapping("/{chatRoomId}/topic-recommendations")
+    public ResponseEntity<ApiResponse<TopicRecommendationResponse>> recommendTopics(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long chatRoomId
+    ) {
+        TopicRecommendationResponse response = topicRecommendationService.recommend(jwt.getSubject(), chatRoomId);
+        return ResponseEntity.ok(ApiResponse.success("대화 주제 추천에 성공했습니다.", response));
+    }
+
+    @Operation(
+            summary = "추천 대화 주제 공유",
+            description = "추천된 대화 주제를 현재 채팅방에 CARD 메시지로 공유합니다. 현재 참여자만 호출할 수 있습니다."
+    )
+    @PostMapping("/{chatRoomId}/topic-recommendations/share")
+    public ResponseEntity<ApiResponse<ChatMessageResponse>> shareTopic(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long chatRoomId,
+            @Valid @RequestBody ShareTopicRecommendationRequest request
+    ) {
+        ChatMessageResponse response = topicRecommendationService.share(jwt.getSubject(), chatRoomId, request);
+        return ResponseEntity.ok(ApiResponse.success("추천 대화 주제를 공유했습니다.", response));
+    }
+
+    @Operation(
+            summary = "AI 모임 미션 추천",
+            description = """
+                    모임 제목, 소개, 카테고리, 태그와 현재 참여자의 관심 태그를 기반으로 행동형 미션 1~3개를 추천합니다.
+                    채팅 메시지 본문은 사용하지 않으며 현재는 외부 호출 없는 Mock AI Client를 사용합니다.
+                    leftAt이 없는 현재 채팅방 참여자만 호출할 수 있습니다.
+                    """
+    )
+    @PostMapping("/{chatRoomId}/mission-recommendations")
+    public ResponseEntity<ApiResponse<MissionRecommendationResponse>> recommendMissions(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long chatRoomId
+    ) {
+        MissionRecommendationResponse response = missionRecommendationService.recommend(jwt.getSubject(), chatRoomId);
+        return ResponseEntity.ok(ApiResponse.success("모임 미션 추천에 성공했습니다.", response));
+    }
+
+    @Operation(
+            summary = "추천 모임 미션 공유",
+            description = """
+                    추천된 미션을 현재 채팅방에 CARD 메시지로 공유합니다.
+                    현재 참여자만 호출할 수 있으며 기존 메시지 저장, WebSocket 및 이벤트 발행 흐름을 재사용합니다.
+                    """
+    )
+    @PostMapping("/{chatRoomId}/mission-recommendations/share")
+    public ResponseEntity<ApiResponse<ChatMessageResponse>> shareMission(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long chatRoomId,
+            @Valid @RequestBody ShareMissionRecommendationRequest request
+    ) {
+        ChatMessageResponse response = missionRecommendationService.share(jwt.getSubject(), chatRoomId, request);
+        return ResponseEntity.ok(ApiResponse.success("추천 모임 미션을 공유했습니다.", response));
+    }
+
+    @Operation(
+            summary = "채팅방 활동 통계 조회",
+            description = "최근 7일 메시지 수 기반 활동 상태와 최근 30일의 날짜별 히트맵 데이터를 조회합니다. 메시지 내용은 조회하거나 반환하지 않습니다."
+    )
+    @GetMapping("/{chatRoomId}/activity")
+    public ResponseEntity<ApiResponse<ChatRoomActivityResponse>> getActivity(
+            @AuthenticationPrincipal Jwt jwt,
+            @Parameter(description = "채팅방 ID", example = "1") @PathVariable Long chatRoomId
+    ) {
+        ChatRoomActivityResponse response = chatRoomActivityService.getActivity(jwt.getSubject(), chatRoomId);
+        return ResponseEntity.ok(ApiResponse.success("채팅방 활동 통계 조회에 성공했습니다.", response));
     }
 
     @Operation(

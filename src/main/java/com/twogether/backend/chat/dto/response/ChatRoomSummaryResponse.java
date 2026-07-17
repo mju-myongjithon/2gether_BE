@@ -30,7 +30,13 @@ public record ChatRoomSummaryResponse(
         OffsetDateTime lastMessageAt,
 
         @Schema(description = "읽지 않은 메시지 수", example = "2")
-        int unreadCount
+        int unreadCount,
+
+        @Schema(description = "방장 사용자 ID", example = "1")
+        Long hostId,
+
+        @Schema(description = "방장 닉네임", example = "인준")
+        String hostNickname
 
 ) {
 }

@@ -90,6 +90,10 @@ public class Message {
     @Column(name = "client_message_id")
     private UUID clientMessageId;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "replied_to_message_id")
+    private Message repliedToMessage;
+
     @Column(
             name = "created_at",
             nullable = false,
@@ -106,7 +110,8 @@ public class Message {
             MessageType type,
             String content,
             Map<String, Object> meta,
-            UUID clientMessageId
+            UUID clientMessageId,
+            Message repliedToMessage
     ) {
         this.chatRoom = chatRoom;
         this.sender = sender;
@@ -114,6 +119,7 @@ public class Message {
         this.content = content;
         this.meta = meta;
         this.clientMessageId = clientMessageId;
+        this.repliedToMessage = repliedToMessage;
     }
 
     public static Message text(
@@ -122,7 +128,17 @@ public class Message {
             String content,
             UUID clientMessageId
     ) {
-        return new Message(chatRoom, sender, MessageType.TEXT, content, null, clientMessageId);
+        return new Message(chatRoom, sender, MessageType.TEXT, content, null, clientMessageId, null);
+    }
+
+    public static Message text(
+            ChatRoom chatRoom,
+            User sender,
+            String content,
+            UUID clientMessageId,
+            Message repliedToMessage
+    ) {
+        return new Message(chatRoom, sender, MessageType.TEXT, content, null, clientMessageId, repliedToMessage);
     }
 
     public static Message image(
@@ -131,7 +147,7 @@ public class Message {
             String content,
             UUID clientMessageId
     ) {
-        return new Message(chatRoom, sender, MessageType.IMAGE, content, null, clientMessageId);
+        return new Message(chatRoom, sender, MessageType.IMAGE, content, null, clientMessageId, null);
     }
 
     /**
@@ -142,7 +158,7 @@ public class Message {
             String content,
             Map<String, Object> meta
     ) {
-        return new Message(chatRoom, null, MessageType.SYSTEM, content, meta, null);
+        return new Message(chatRoom, null, MessageType.SYSTEM, content, meta, null, null);
     }
 
     public static Message card(
@@ -151,7 +167,7 @@ public class Message {
             String content,
             Map<String, Object> meta
     ) {
-        return new Message(chatRoom, sender, MessageType.CARD, content, meta, null);
+        return new Message(chatRoom, sender, MessageType.CARD, content, meta, null, null);
     }
 
     @PrePersist
@@ -201,5 +217,13 @@ public class Message {
 
     public OffsetDateTime getCreatedAt() {
         return createdAt;
+    }
+
+    public Message getRepliedToMessage() {
+        return repliedToMessage;
+    }
+
+    public void setRepliedToMessage(Message repliedToMessage) {
+        this.repliedToMessage = repliedToMessage;
     }
 }
