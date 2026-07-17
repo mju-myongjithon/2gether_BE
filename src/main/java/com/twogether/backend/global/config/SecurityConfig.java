@@ -54,6 +54,11 @@ public class SecurityConfig {
                                 "/api/skill-tags"
                         ).permitAll()
 
+                        .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/telegram/webhook"
+                        ).permitAll()
+
                         // 그 외 API는 Supabase 로그인이 필요
                         .anyRequest().authenticated()
                 )
