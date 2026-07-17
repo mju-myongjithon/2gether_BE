@@ -136,6 +136,36 @@ public enum ErrorCode {
             "모집 중인 모임만 수정/취소할 수 있습니다."
     ),
 
+    GATHERING_COMPLETE_FORBIDDEN(
+            HttpStatus.FORBIDDEN,
+            "GATHERING_COMPLETE_FORBIDDEN",
+            "모임장만 모임을 완료할 수 있습니다."
+    ),
+
+    INVALID_GATHERING_STATUS_FOR_COMPLETE(
+            HttpStatus.CONFLICT,
+            "INVALID_GATHERING_STATUS_FOR_COMPLETE",
+            "확정된 모임만 완료할 수 있습니다."
+    ),
+
+    VERIFICATION_NOT_COMPLETED_GATHERING(
+            HttpStatus.CONFLICT,
+            "VERIFICATION_NOT_COMPLETED_GATHERING",
+            "완료된 모임만 활동 인증을 제출할 수 있습니다."
+    ),
+
+    VERIFICATION_SUBMIT_FORBIDDEN(
+            HttpStatus.FORBIDDEN,
+            "VERIFICATION_SUBMIT_FORBIDDEN",
+            "모임 참여자만 활동 인증을 제출할 수 있습니다."
+    ),
+
+    VERIFICATION_ALREADY_EXISTS(
+            HttpStatus.CONFLICT,
+            "VERIFICATION_ALREADY_EXISTS",
+            "해당 모임의 활동 인증이 이미 존재합니다."
+    ),
+
     GATHERING_NOT_RECRUITING(
             HttpStatus.CONFLICT,
             "GATHERING_NOT_RECRUITING",

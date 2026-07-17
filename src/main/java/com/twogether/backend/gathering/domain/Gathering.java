@@ -214,6 +214,15 @@ public class Gathering {
         this.canceledAt = OffsetDateTime.now();
     }
 
+    public void complete() {
+        if (this.status != GatheringStatus.CONFIRMED) {
+            throw new BusinessException(
+                    ErrorCode.INVALID_GATHERING_STATUS_FOR_COMPLETE
+            );
+        }
+        this.status = GatheringStatus.COMPLETED;
+    }
+
     public void increaseMember() {
         this.currentMembers++;
     }

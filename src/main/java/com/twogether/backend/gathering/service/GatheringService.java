@@ -12,6 +12,7 @@ import com.twogether.backend.gathering.dto.request.GatheringCreateRequest;
 import com.twogether.backend.gathering.dto.request.GatheringUpdateRequest;
 import com.twogether.backend.gathering.dto.response.GatheringCancelResponse;
 import com.twogether.backend.gathering.dto.response.GatheringConfirmResponse;
+import com.twogether.backend.gathering.dto.response.GatheringCompleteResponse;
 import com.twogether.backend.gathering.dto.response.GatheringCreateResponse;
 import com.twogether.backend.gathering.dto.response.GatheringDetailResponse;
 import com.twogether.backend.gathering.dto.response.GatheringSummaryResponse;
@@ -414,6 +415,29 @@ public class GatheringService {
                 gathering.getId(),
                 gathering.getStatus(),
                 gathering.getCanceledAt()
+        );
+    }
+
+    @Transactional
+    public GatheringCompleteResponse complete(
+            String authUserId,
+            Long gatheringId
+    ) {
+        User me = userRepository.findByAuthUserId(authUserId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        Gathering gathering = gatheringRepository.findById(gatheringId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.GATHERING_NOT_FOUND));
+
+        if (!gathering.isHost(me.getId())) {
+            throw new BusinessException(ErrorCode.GATHERING_COMPLETE_FORBIDDEN);
+        }
+
+        gathering.complete();
+
+        return new GatheringCompleteResponse(
+                gathering.getId(),
+                gathering.getStatus()
         );
     }
 
