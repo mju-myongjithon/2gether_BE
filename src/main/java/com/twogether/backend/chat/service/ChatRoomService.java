@@ -4,7 +4,9 @@ import com.twogether.backend.chat.domain.ChatMemberRole;
 import com.twogether.backend.chat.domain.ChatRoom;
 import com.twogether.backend.chat.domain.ChatRoomMember;
 import com.twogether.backend.chat.domain.Message;
+import com.twogether.backend.chat.domain.MessageRead;
 import com.twogether.backend.chat.dto.request.ChatReadRequest;
+import com.twogether.backend.chat.dto.response.ChatReadBroadcastResponse;
 import com.twogether.backend.chat.dto.response.ChatReadResponse;
 import com.twogether.backend.chat.dto.response.ChatMessageResponse;
 import com.twogether.backend.chat.dto.response.ChatNoticeResponse;
@@ -14,6 +16,7 @@ import com.twogether.backend.chat.dto.response.ChatRoomSummaryResponse;
 import com.twogether.backend.chat.repository.ChatNoticeRepository;
 import com.twogether.backend.chat.repository.ChatRoomMemberRepository;
 import com.twogether.backend.chat.repository.ChatRoomRepository;
+import com.twogether.backend.chat.repository.MessageReadRepository;
 import com.twogether.backend.chat.repository.MessageRepository;
 import com.twogether.backend.department.domain.Department;
 import com.twogether.backend.department.repository.DepartmentRepository;
@@ -52,6 +55,7 @@ public class ChatRoomService {
     private final ChatNoticeRepository chatNoticeRepository;
     private final ChatRoomMemberRepository chatRoomMemberRepository;
     private final MessageRepository messageRepository;
+    private final MessageReadRepository messageReadRepository;
     private final UserRepository userRepository;
     private final DepartmentRepository departmentRepository;
     private final SimpMessagingTemplate messagingTemplate;
@@ -61,6 +65,7 @@ public class ChatRoomService {
             ChatNoticeRepository chatNoticeRepository,
             ChatRoomMemberRepository chatRoomMemberRepository,
             MessageRepository messageRepository,
+            MessageReadRepository messageReadRepository,
             UserRepository userRepository,
             DepartmentRepository departmentRepository,
             SimpMessagingTemplate messagingTemplate
@@ -69,6 +74,7 @@ public class ChatRoomService {
         this.chatNoticeRepository = chatNoticeRepository;
         this.chatRoomMemberRepository = chatRoomMemberRepository;
         this.messageRepository = messageRepository;
+        this.messageReadRepository = messageReadRepository;
         this.userRepository = userRepository;
         this.departmentRepository = departmentRepository;
         this.messagingTemplate = messagingTemplate;
@@ -223,6 +229,13 @@ public class ChatRoomService {
         int unreadCount = (int) messageRepository
                 .countByChatRoomIdAndIdGreaterThan(room.getId(), lastReadId);
 
+        // 방장 정보 조회
+        ChatRoomMember hostMember = chatRoomMemberRepository
+                .findByChatRoomIdAndRoleAndLeftAtIsNull(room.getId(), ChatMemberRole.OWNER)
+                .orElse(null);
+        Long hostId = hostMember != null ? hostMember.getUser().getId() : null;
+        String hostNickname = hostMember != null ? hostMember.getUser().getNickname() : null;
+
         return new ChatRoomSummaryResponse(
                 room.getId(),
                 room.getGatheringId(),
@@ -231,7 +244,9 @@ public class ChatRoomService {
                 memberCount,
                 lastMessage,
                 room.getLastMessageAt(),
-                unreadCount
+                unreadCount,
+                hostId,
+                hostNickname
         );
     }
 
@@ -358,7 +373,30 @@ public class ChatRoomService {
 
         Long current = membership.getLastReadMessageId();
         Long newLastRead = (current == null || requested > current) ? requested : current;
+
+        if (!newLastRead.equals(current)) {
+            Message message = messageRepository.findById(newLastRead).orElse(null);
+            if (message != null) {
+                if (!messageReadRepository.existsByMessageIdAndUserId(newLastRead, me.getId())) {
+                    messageReadRepository.save(new MessageRead(message, me));
+                }
+            }
+        }
+
         membership.updateLastReadMessageId(newLastRead);
+
+        // 읽음 위치가 전진했을 때만 방 구독자에게 실시간 반영(메시지별 안읽음 수 갱신용).
+        if (!newLastRead.equals(current)) {
+            messagingTemplate.convertAndSend(
+                    BROADCAST_DESTINATION_PREFIX + roomId + "/read",
+                    new ChatReadBroadcastResponse(
+                            roomId,
+                            me.getId(),
+                            current == null ? 0L : current,
+                            newLastRead
+                    )
+            );
+        }
 
         int unreadCount = (int) messageRepository
                 .countByChatRoomIdAndIdGreaterThan(roomId, newLastRead);

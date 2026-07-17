@@ -16,6 +16,7 @@ import com.twogether.backend.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.twogether.backend.chat.service.ChatRoomService;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;

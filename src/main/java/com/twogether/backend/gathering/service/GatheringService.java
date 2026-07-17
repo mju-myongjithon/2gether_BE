@@ -34,6 +34,7 @@ import com.twogether.backend.global.response.PageResponse;
 import com.twogether.backend.tag.repository.TagRepository;
 import com.twogether.backend.user.domain.User;
 import com.twogether.backend.user.repository.UserRepository;
+import com.twogether.backend.chat.service.ChatRoomService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
