@@ -145,21 +145,20 @@ public class ChatController {
     @Operation(
             summary = "메시지 읽음 처리",
             description = """
-                    특정 메시지까지 읽음 처리하여 unreadCount를 갱신합니다.
+                    특정 메시지까지 읽음 처리하여 last_read_message_id 를 전진 갱신하고,
+                    갱신 후의 안읽음 수(unreadCount)를 반환합니다.
 
-                    ⚠️ 현재는 스켈레톤 더미 응답입니다. 실제 반영은 이슈 C5에서 진행합니다.
+                    참여 중인 사용자만 호출할 수 있습니다.
                     """
     )
     @PostMapping("/{roomId}/read")
     public ResponseEntity<ApiResponse<ChatReadResponse>> readMessages(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long roomId,
-            @RequestBody ChatReadRequest request
+            @Valid @RequestBody ChatReadRequest request
     ) {
-        ChatReadResponse response = new ChatReadResponse(
-                roomId,
-                request.lastReadMessageId(),
-                0
-        );
+        ChatReadResponse response =
+                chatRoomService.markRead(jwt.getSubject(), roomId, request);
 
         return ResponseEntity.ok(
                 ApiResponse.success("읽음 처리되었습니다.", response)
