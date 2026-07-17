@@ -220,6 +220,12 @@ public enum ErrorCode {
             "이미 사용된 안심 커넥트 코드입니다."
     ),
 
+    NOTIFICATION_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "NOTIFICATION_NOT_FOUND",
+            "알림을 찾을 수 없습니다."
+    ),
+
     INTERNAL_SERVER_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "INTERNAL_SERVER_ERROR",
