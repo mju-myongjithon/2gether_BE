@@ -31,9 +31,5 @@ public record AiGatheringRecommendationRequest(
                     "추천 인원은 1명 이상이어야 합니다."
             );
         }
-
-        if (recommendationCount > candidates.size()) {
-            recommendationCount = candidates.size();
-        }
     }
 }
