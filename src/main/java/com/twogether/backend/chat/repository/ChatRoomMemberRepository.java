@@ -34,6 +34,13 @@ public interface ChatRoomMemberRepository
     /*
      * 방 참여 권한 검증용.
      */
+    /*
+     * 방의 현재 참여자 수(멤버 카운트).
+     */
+    long countByChatRoomIdAndLeftAtIsNull(
+            Long chatRoomId
+    );
+
     boolean existsByChatRoomIdAndUserIdAndLeftAtIsNull(
             Long chatRoomId,
             Long userId

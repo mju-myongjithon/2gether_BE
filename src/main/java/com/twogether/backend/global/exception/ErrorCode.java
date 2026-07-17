@@ -190,6 +190,12 @@ public enum ErrorCode {
             "요청한 태그 유형이 올바르지 않습니다."
     ),
 
+    CHAT_ROOM_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "CHAT_ROOM_NOT_FOUND",
+            "채팅방을 찾을 수 없습니다."
+    ),
+
     INTERNAL_SERVER_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "INTERNAL_SERVER_ERROR",
