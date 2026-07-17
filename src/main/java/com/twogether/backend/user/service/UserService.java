@@ -300,6 +300,11 @@ public class UserService {
                         user.getId()
                 );
 
+        userBookmarkRepository.deleteAllByBookmarkerIdOrBookmarkedUserId(
+                user.getId(),
+                user.getId()
+        );
+
         userRepository.delete(user);
     }
 
@@ -406,9 +411,14 @@ public class UserService {
                 user.getIntroduction(),
                 user.getProfileImageUrl(),
                 tags.hobbyTags(),
+<<<<<<< HEAD
                 tags.skillTags(),
                 participatingGatheringsCount,
                 bookmarked
+=======
+                                tags.skillTags(),
+                                bookmarked
+>>>>>>> 41793dc568af2a19c3d7a1504deaf2e5ccac4ae3
         );
     }
 }
