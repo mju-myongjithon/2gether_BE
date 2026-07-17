@@ -166,6 +166,30 @@ public enum ErrorCode {
             "해당 모임의 활동 인증이 이미 존재합니다."
     ),
 
+    VERIFICATION_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "VERIFICATION_NOT_FOUND",
+            "활동 인증을 찾을 수 없습니다."
+    ),
+
+    VERIFICATION_EVALUATE_FORBIDDEN(
+            HttpStatus.FORBIDDEN,
+            "VERIFICATION_EVALUATE_FORBIDDEN",
+            "모임 참여자만 활동 인증을 판정할 수 있습니다."
+    ),
+
+    VERIFICATION_ALREADY_EVALUATED(
+            HttpStatus.CONFLICT,
+            "VERIFICATION_ALREADY_EVALUATED",
+            "이미 판정이 완료된 활동 인증입니다."
+    ),
+
+    INVALID_AI_VERIFICATION_RESULT(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "INVALID_AI_VERIFICATION_RESULT",
+            "AI 활동 인증 판정 결과가 올바르지 않습니다."
+    ),
+
     GATHERING_NOT_RECRUITING(
             HttpStatus.CONFLICT,
             "GATHERING_NOT_RECRUITING",

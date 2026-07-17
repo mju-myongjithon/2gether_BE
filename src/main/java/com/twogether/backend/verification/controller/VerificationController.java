@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "활동 인증 API")
 @RestController
-@RequestMapping("/api/gatherings/{gatheringId}/verifications")
+@RequestMapping("/api")
 public class VerificationController {
 
     private final VerificationService verificationService;
@@ -31,7 +31,7 @@ public class VerificationController {
 
     @Operation(summary = "활동 인증 제출")
     @SecurityRequirement(name = "Bearer Authentication")
-    @PostMapping
+    @PostMapping("/gatherings/{gatheringId}/verifications")
     public ResponseEntity<ApiResponse<VerificationResponse>> createVerification(
             @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long gatheringId,
@@ -44,5 +44,17 @@ public class VerificationController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(ApiResponse.success("활동 인증이 제출되었습니다.", response));
+    }
+
+
+    @Operation(summary = "AI 활동 인증 판정")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @PostMapping("/verifications/{verificationId}/evaluate")
+    public ResponseEntity<ApiResponse<VerificationResponse>> evaluateVerification(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long verificationId
+    ) {
+        VerificationResponse response = verificationService.evaluate(jwt.getSubject(), verificationId);
+        return ResponseEntity.ok(ApiResponse.success("AI 활동 인증 판정이 완료되었습니다.", response));
     }
 }

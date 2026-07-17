@@ -9,6 +9,9 @@ import com.twogether.backend.global.exception.ErrorCode;
 import com.twogether.backend.user.domain.User;
 import com.twogether.backend.user.repository.UserRepository;
 import com.twogether.backend.verification.domain.Verification;
+import com.twogether.backend.verification.client.AiVerificationClient;
+import com.twogether.backend.verification.dto.ai.AiVerificationRequest;
+import com.twogether.backend.verification.dto.ai.AiVerificationResult;
 import com.twogether.backend.verification.dto.request.VerificationCreateRequest;
 import com.twogether.backend.verification.dto.response.VerificationResponse;
 import com.twogether.backend.verification.repository.VerificationRepository;
@@ -23,17 +26,20 @@ public class VerificationService {
     private final GatheringRepository gatheringRepository;
     private final GatheringMemberRepository gatheringMemberRepository;
     private final UserRepository userRepository;
+    private final AiVerificationClient aiVerificationClient;
 
     public VerificationService(
             VerificationRepository verificationRepository,
             GatheringRepository gatheringRepository,
             GatheringMemberRepository gatheringMemberRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            AiVerificationClient aiVerificationClient
     ) {
         this.verificationRepository = verificationRepository;
         this.gatheringRepository = gatheringRepository;
         this.gatheringMemberRepository = gatheringMemberRepository;
         this.userRepository = userRepository;
+        this.aiVerificationClient = aiVerificationClient;
     }
 
     @Transactional
@@ -63,5 +69,43 @@ public class VerificationService {
         );
 
         return VerificationResponse.from(verification);
+    }
+
+    @Transactional
+    public VerificationResponse evaluate(String authUserId, Long verificationId) {
+        User user = userRepository.findByAuthUserId(authUserId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        Verification verification = verificationRepository.findById(verificationId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.VERIFICATION_NOT_FOUND));
+        Gathering gathering = verification.getGathering();
+
+        if (!gatheringMemberRepository.existsByGatheringIdAndUserId(gathering.getId(), user.getId())) {
+            throw new BusinessException(ErrorCode.VERIFICATION_EVALUATE_FORBIDDEN);
+        }
+        if (verification.getAiStatus() != com.twogether.backend.verification.domain.AiStatus.PENDING) {
+            throw new BusinessException(ErrorCode.VERIFICATION_ALREADY_EVALUATED);
+        }
+
+        AiVerificationResult result = aiVerificationClient.verify(new AiVerificationRequest(
+                verification.getId(), gathering.getId(), gathering.getTitle(), gathering.getContent(),
+                gathering.getCategory(), gathering.getLocation(), gathering.getMeetAt(),
+                verification.getPhotoUrl(), verification.getReviewText()
+        ));
+        validateAiResult(result);
+        if (result.status() == com.twogether.backend.verification.domain.AiStatus.APPROVED) {
+            verification.approve(result.reason());
+        } else {
+            verification.reject(result.reason());
+        }
+        return VerificationResponse.from(verification);
+    }
+
+    private void validateAiResult(AiVerificationResult result) {
+        if (result == null || result.status() == null
+                || result.status() == com.twogether.backend.verification.domain.AiStatus.PENDING
+                || result.reason() == null || result.reason().isBlank()
+                || result.reason().length() > 300) {
+            throw new BusinessException(ErrorCode.INVALID_AI_VERIFICATION_RESULT);
+        }
     }
 }

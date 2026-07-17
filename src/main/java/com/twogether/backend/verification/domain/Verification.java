@@ -1,6 +1,8 @@
 package com.twogether.backend.verification.domain;
 
 import com.twogether.backend.gathering.domain.Gathering;
+import com.twogether.backend.global.exception.BusinessException;
+import com.twogether.backend.global.exception.ErrorCode;
 import com.twogether.backend.user.domain.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -106,4 +108,25 @@ public class Verification {
     public Integer getCanvasPixelY() { return canvasPixelY; }
     public OffsetDateTime getCreatedAt() { return createdAt; }
     public OffsetDateTime getVerifiedAt() { return verifiedAt; }
+
+    public void approve(String reason) {
+        evaluate(AiStatus.APPROVED, reason);
+    }
+
+    public void reject(String reason) {
+        evaluate(AiStatus.REJECTED, reason);
+    }
+
+    private void evaluate(AiStatus status, String reason) {
+        if (aiStatus != AiStatus.PENDING) {
+            throw new BusinessException(ErrorCode.VERIFICATION_ALREADY_EVALUATED);
+        }
+        if (status == null || status == AiStatus.PENDING
+                || reason == null || reason.isBlank() || reason.length() > 300) {
+            throw new BusinessException(ErrorCode.INVALID_AI_VERIFICATION_RESULT);
+        }
+        this.aiStatus = status;
+        this.aiReason = reason;
+        this.verifiedAt = OffsetDateTime.now();
+    }
 }

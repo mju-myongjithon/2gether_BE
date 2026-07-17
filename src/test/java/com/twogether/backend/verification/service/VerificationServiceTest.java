@@ -9,6 +9,7 @@ import com.twogether.backend.global.exception.ErrorCode;
 import com.twogether.backend.user.domain.User;
 import com.twogether.backend.user.repository.UserRepository;
 import com.twogether.backend.verification.domain.AiStatus;
+import com.twogether.backend.verification.client.AiVerificationClient;
 import com.twogether.backend.verification.domain.Verification;
 import com.twogether.backend.verification.dto.request.VerificationCreateRequest;
 import com.twogether.backend.verification.repository.VerificationRepository;
@@ -33,6 +34,7 @@ class VerificationServiceTest {
     private GatheringMemberRepository gatheringMemberRepository;
     private UserRepository userRepository;
     private VerificationService verificationService;
+    private AiVerificationClient aiVerificationClient;
     private Gathering gathering;
     private User uploader;
 
@@ -42,9 +44,10 @@ class VerificationServiceTest {
         gatheringRepository = mock(GatheringRepository.class);
         gatheringMemberRepository = mock(GatheringMemberRepository.class);
         userRepository = mock(UserRepository.class);
+        aiVerificationClient = mock(AiVerificationClient.class);
         verificationService = new VerificationService(
                 verificationRepository, gatheringRepository,
-                gatheringMemberRepository, userRepository
+                gatheringMemberRepository, userRepository, aiVerificationClient
         );
         gathering = mock(Gathering.class);
         uploader = mock(User.class);
