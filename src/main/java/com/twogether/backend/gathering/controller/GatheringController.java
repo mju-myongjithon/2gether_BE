@@ -4,6 +4,7 @@ import com.twogether.backend.gathering.dto.request.GatheringCreateRequest;
 import com.twogether.backend.gathering.dto.request.GatheringUpdateRequest;
 import com.twogether.backend.gathering.dto.response.GatheringCancelResponse;
 import com.twogether.backend.gathering.dto.response.GatheringConfirmResponse;
+import com.twogether.backend.gathering.dto.response.GatheringCompleteResponse;
 import com.twogether.backend.gathering.dto.response.GatheringCreateResponse;
 import com.twogether.backend.gathering.dto.response.GatheringDetailResponse;
 import com.twogether.backend.gathering.dto.response.GatheringSummaryResponse;
@@ -207,6 +208,21 @@ public class GatheringController {
 
         return ResponseEntity.ok(
                 ApiResponse.success("모임이 확정되었습니다.", response)
+        );
+    }
+
+    @Operation(summary = "모임 완료", description = "모임장이 확정된 모임을 완료 처리합니다.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @PostMapping("/{gatheringId}/complete")
+    public ResponseEntity<ApiResponse<GatheringCompleteResponse>> completeGathering(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long gatheringId
+    ) {
+        GatheringCompleteResponse response =
+                gatheringService.complete(jwt.getSubject(), gatheringId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("모임이 완료되었습니다.", response)
         );
     }
 }
