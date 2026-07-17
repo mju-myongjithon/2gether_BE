@@ -87,7 +87,10 @@ public record GatheringDetailResponse(
         boolean isHost,
 
         @Schema(description = "내가 멤버인지 여부", example = "false")
-        boolean isMember
+        boolean isMember,
+
+        @Schema(description = "내가 이 모임을 북마크했는지 여부", example = "false")
+        boolean bookmarked
 
 ) {
 
@@ -114,6 +117,7 @@ public record GatheringDetailResponse(
             ApplicationStatus myApplicationStatus,
             boolean isHost,
             boolean isMember,
+            boolean bookmarked,
             OffsetDateTime now
     ) {
         HostSummaryResponse host = new HostSummaryResponse(
@@ -147,7 +151,8 @@ public record GatheringDetailResponse(
                 images,
                 myApplicationStatus,
                 isHost,
-                isMember
+                                isMember,
+                                bookmarked
         );
     }
 }

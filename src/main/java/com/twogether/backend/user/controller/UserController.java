@@ -1,6 +1,9 @@
 package com.twogether.backend.user.controller;
 
 import com.twogether.backend.global.response.ApiResponse;
+import com.twogether.backend.bookmark.dto.response.BookmarkStateResponse;
+import com.twogether.backend.bookmark.dto.response.MyBookmarksResponse;
+import com.twogether.backend.bookmark.service.BookmarkService;
 import com.twogether.backend.gathering.dto.response.MyGatheringResponse;
 import com.twogether.backend.gathering.service.GatheringService;
 import com.twogether.backend.user.dto.request.OnboardingUpdateRequest;
@@ -13,10 +16,12 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -38,10 +43,12 @@ public class UserController {
 
     private final UserService userService;
         private final GatheringService gatheringService;
+        private final BookmarkService bookmarkService;
 
-        public UserController(UserService userService, GatheringService gatheringService) {
+        public UserController(UserService userService, GatheringService gatheringService, BookmarkService bookmarkService) {
         this.userService = userService;
                 this.gatheringService = gatheringService;
+                this.bookmarkService = bookmarkService;
     }
 
     @Operation(
@@ -273,10 +280,11 @@ public class UserController {
     @SecurityRequirement(name = "Bearer Authentication")
     @GetMapping("/{userId}")
     public ResponseEntity<ApiResponse<UserProfileResponse>> getUserProfile(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long userId
     ) {
         UserProfileResponse response =
-                userService.getUserProfile(userId);
+                userService.getUserProfile(userId, jwt != null ? jwt.getSubject() : null);
 
         return ResponseEntity.ok(
                 ApiResponse.success(
@@ -284,5 +292,46 @@ public class UserController {
                         response
                 )
         );
+    }
+
+    @Operation(
+            summary = "내 북마크 목록 조회",
+            description = "현재 로그인한 사용자가 북마크한 사용자와 모임 목록을 함께 조회합니다."
+    )
+    @SecurityRequirement(name = "Bearer Authentication")
+    @GetMapping("/me/bookmarks")
+    public ResponseEntity<ApiResponse<MyBookmarksResponse>> getMyBookmarks(
+            @AuthenticationPrincipal Jwt jwt
+    ) {
+        MyBookmarksResponse response = bookmarkService.getMyBookmarks(jwt.getSubject());
+
+        return ResponseEntity.ok(
+                ApiResponse.success(
+                        "내 북마크 목록 조회에 성공했습니다.",
+                        response
+                )
+        );
+    }
+
+    @Operation(summary = "사용자 북마크 토글", description = "특정 사용자를 북마크하거나 북마크를 해제합니다.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @PostMapping("/{userId}/bookmark")
+    public ResponseEntity<ApiResponse<BookmarkStateResponse>> toggleUserBookmark(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long userId
+    ) {
+        BookmarkStateResponse response = bookmarkService.toggleUserBookmark(jwt.getSubject(), userId);
+        return ResponseEntity.ok(ApiResponse.success("사용자 북마크를 변경했습니다.", response));
+    }
+
+    @Operation(summary = "사용자 북마크 해제", description = "특정 사용자의 북마크를 해제합니다.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @DeleteMapping("/{userId}/bookmark")
+    public ResponseEntity<ApiResponse<BookmarkStateResponse>> removeUserBookmark(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long userId
+    ) {
+        BookmarkStateResponse response = bookmarkService.toggleUserBookmark(jwt.getSubject(), userId);
+        return ResponseEntity.ok(ApiResponse.success("사용자 북마크를 해제했습니다.", response));
     }
 }

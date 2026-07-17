@@ -10,6 +10,8 @@ import com.twogether.backend.gatheringnotice.repository.GatheringNoticeRepositor
 import com.twogether.backend.global.exception.BusinessException;
 import com.twogether.backend.global.exception.ErrorCode;
 import com.twogether.backend.global.response.PageResponse;
+import com.twogether.backend.notification.domain.NotificationType;
+import com.twogether.backend.notification.service.NotificationDispatchService;
 import com.twogether.backend.user.domain.User;
 import com.twogether.backend.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
@@ -17,6 +19,8 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Map;
 
 @Service
 @Transactional(readOnly = true)
@@ -26,17 +30,20 @@ public class GatheringNoticeService {
     private final GatheringRepository gatheringRepository;
     private final GatheringMemberRepository gatheringMemberRepository;
     private final UserRepository userRepository;
+    private final NotificationDispatchService notificationDispatchService;
 
     public GatheringNoticeService(
             GatheringNoticeRepository gatheringNoticeRepository,
             GatheringRepository gatheringRepository,
             GatheringMemberRepository gatheringMemberRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            NotificationDispatchService notificationDispatchService
     ) {
         this.gatheringNoticeRepository = gatheringNoticeRepository;
         this.gatheringRepository = gatheringRepository;
         this.gatheringMemberRepository = gatheringMemberRepository;
         this.userRepository = userRepository;
+        this.notificationDispatchService = notificationDispatchService;
     }
 
     @Transactional
@@ -60,6 +67,20 @@ public class GatheringNoticeService {
         );
 
         GatheringNotice saved = gatheringNoticeRepository.save(notice);
+
+        gatheringMemberRepository.findByGatheringIdWithUser(gatheringId).stream()
+            .filter(member -> !member.getUser().getId().equals(me.getId()))
+            .forEach(member -> notificationDispatchService.notifyEvent(
+                member.getUser().getId(),
+                NotificationType.CHAT_NOTICE,
+                "새 모임 공지",
+                "'" + gathering.getTitle() + "' 모임에 새 공지가 등록되었습니다.",
+                Map.of(
+                    "gatheringId", gathering.getId(),
+                    "noticeId", saved.getId()
+                )
+            ));
+
         return NoticeResponse.from(saved);
     }
 

@@ -21,6 +21,8 @@ import com.twogether.backend.gatheringapplication.repository.GatheringApplicatio
 import com.twogether.backend.global.exception.BusinessException;
 import com.twogether.backend.global.exception.ErrorCode;
 import com.twogether.backend.global.response.PageResponse;
+import com.twogether.backend.notification.domain.NotificationType;
+import com.twogether.backend.notification.service.NotificationDispatchService;
 import com.twogether.backend.user.domain.User;
 import com.twogether.backend.user.repository.UserRepository;
 import org.springframework.data.domain.Page;
@@ -47,19 +49,22 @@ public class GatheringApplicationService {
     private final GatheringMemberRepository gatheringMemberRepository;
     private final UserRepository userRepository;
     private final DepartmentRepository departmentRepository;
+        private final NotificationDispatchService notificationDispatchService;
 
     public GatheringApplicationService(
             GatheringApplicationRepository gatheringApplicationRepository,
             GatheringRepository gatheringRepository,
             GatheringMemberRepository gatheringMemberRepository,
             UserRepository userRepository,
-            DepartmentRepository departmentRepository
+                        DepartmentRepository departmentRepository,
+                        NotificationDispatchService notificationDispatchService
     ) {
         this.gatheringApplicationRepository = gatheringApplicationRepository;
         this.gatheringRepository = gatheringRepository;
         this.gatheringMemberRepository = gatheringMemberRepository;
         this.userRepository = userRepository;
         this.departmentRepository = departmentRepository;
+                this.notificationDispatchService = notificationDispatchService;
     }
 
     /**
@@ -96,6 +101,17 @@ public class GatheringApplicationService {
 
         GatheringApplication application = gatheringApplicationRepository.save(
                 GatheringApplication.create(gathering, me, request.message())
+        );
+
+        notificationDispatchService.notifyEvent(
+                gathering.getHost().getId(),
+                NotificationType.GATHERING_APPLICATION,
+                "새 모임 신청",
+                me.getNickname() + "님이 '" + gathering.getTitle() + "' 모임에 신청했습니다.",
+                Map.of(
+                        "gatheringId", gathering.getId(),
+                        "applicationId", application.getId()
+                )
         );
 
         return new GatheringApplicationCreateResponse(
@@ -271,6 +287,17 @@ public class GatheringApplicationService {
         );
         gathering.increaseMember();
         application.accept();
+
+        notificationDispatchService.notifyEvent(
+                applicant.getId(),
+                NotificationType.APPLICATION_ACCEPTED,
+                "모임 신청이 수락되었습니다",
+                "'" + gathering.getTitle() + "' 모임 신청이 수락되었습니다.",
+                Map.of(
+                        "gatheringId", gathering.getId(),
+                        "applicationId", application.getId()
+                )
+        );
 
         return new GatheringApplicationAcceptResponse(
                 application.getId(),
