@@ -10,6 +10,8 @@ import com.twogether.backend.chat.dto.response.ChatNoticeResponse;
 import com.twogether.backend.chat.dto.response.ChatReadResponse;
 import com.twogether.backend.chat.dto.response.ChatRoomDetailResponse;
 import com.twogether.backend.chat.dto.response.ChatRoomSummaryResponse;
+import com.twogether.backend.chat.dto.response.ChatRoomActivityResponse;
+import com.twogether.backend.chat.service.ChatRoomActivityService;
 import com.twogether.backend.chat.service.ChatMessageService;
 import com.twogether.backend.chat.service.ChatNoticeService;
 import com.twogether.backend.chat.service.ChatRoomService;
@@ -44,15 +46,31 @@ public class ChatController {
     private final ChatRoomService chatRoomService;
     private final ChatMessageService chatMessageService;
     private final ChatNoticeService chatNoticeService;
+    private final ChatRoomActivityService chatRoomActivityService;
 
     public ChatController(
             ChatRoomService chatRoomService,
             ChatMessageService chatMessageService,
-            ChatNoticeService chatNoticeService
+            ChatNoticeService chatNoticeService,
+            ChatRoomActivityService chatRoomActivityService
     ) {
         this.chatRoomService = chatRoomService;
         this.chatMessageService = chatMessageService;
         this.chatNoticeService = chatNoticeService;
+        this.chatRoomActivityService = chatRoomActivityService;
+    }
+
+    @Operation(
+            summary = "채팅방 활동 통계 조회",
+            description = "최근 7일 메시지 수 기반 활동 상태와 최근 30일의 날짜별 히트맵 데이터를 조회합니다. 메시지 내용은 조회하거나 반환하지 않습니다."
+    )
+    @GetMapping("/{chatRoomId}/activity")
+    public ResponseEntity<ApiResponse<ChatRoomActivityResponse>> getActivity(
+            @AuthenticationPrincipal Jwt jwt,
+            @Parameter(description = "채팅방 ID", example = "1") @PathVariable Long chatRoomId
+    ) {
+        ChatRoomActivityResponse response = chatRoomActivityService.getActivity(jwt.getSubject(), chatRoomId);
+        return ResponseEntity.ok(ApiResponse.success("채팅방 활동 통계 조회에 성공했습니다.", response));
     }
 
     @Operation(

@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import com.twogether.backend.chat.service.ChatRoomService;
 
 @Service
 @Transactional(readOnly = true)
@@ -61,6 +62,7 @@ public class GatheringService {
     private final TagRepository tagRepository;
     private final UserRepository userRepository;
     private final DepartmentRepository departmentRepository;
+    private final ChatRoomService chatRoomService;
 
     public GatheringService(
             GatheringRepository gatheringRepository,
@@ -69,7 +71,8 @@ public class GatheringService {
             GatheringImageRepository gatheringImageRepository,
             TagRepository tagRepository,
             UserRepository userRepository,
-            DepartmentRepository departmentRepository
+            DepartmentRepository departmentRepository,
+            ChatRoomService chatRoomService
     ) {
         this.gatheringRepository = gatheringRepository;
         this.gatheringMemberRepository = gatheringMemberRepository;
@@ -78,8 +81,8 @@ public class GatheringService {
         this.tagRepository = tagRepository;
         this.userRepository = userRepository;
         this.departmentRepository = departmentRepository;
+        this.chatRoomService = chatRoomService;
     }
-
     /**
      * 모임 목록 조회(필터·검색·페이징).
      *
@@ -426,19 +429,13 @@ public class GatheringService {
     }
 
     /**
-     * 모임 취소(소프트).
-     *
-     * 방장·모집중(RECRUITING) 조건을 검증한 뒤 status = CANCELED 로 전이하고
-     * canceled_at 을 기록한다(물리 삭제 아님).
-     */
-    /**
      * 모임 확정.
      *
-     * 방장·모집중(RECRUITING) 조건을 검증한 뒤 status = CONFIRMED 로 전이하고
-     * confirmed_at 을 기록한다.
+     * 방장·모집중(RECRUITING) 조건을 검증한 뒤
+     * 모임 상태를 CONFIRMED로 전환합니다.
      *
-     * 그룹 채팅방 생성/멤버 등록/시스템 메시지는 채팅 도메인 구축(이슈 C1) 이후 연계 예정이며,
-     * 현재는 chatRoomId 를 null 로 반환한다.
+     * 확정된 모임의 HOST와 현재 참여자 전원을 그룹 채팅방에 등록하고,
+     * 생성된 채팅방 ID를 응답으로 반환합니다.
      */
     @Transactional
     public GatheringConfirmResponse confirm(
@@ -454,21 +451,53 @@ public class GatheringService {
         if (!gathering.isHost(me.getId())) {
             throw new BusinessException(ErrorCode.FORBIDDEN);
         }
+
         if (!gathering.isRecruiting()) {
             throw new BusinessException(ErrorCode.GATHERING_NOT_MODIFIABLE);
         }
 
+        /*
+         * 모임에 현재 등록된 멤버를 조회합니다.
+         *
+         * 모임 생성 시 HOST도 GatheringMember로 저장되므로
+         * 일반적으로 HOST까지 이 목록에 포함됩니다.
+         *
+         * ChatRoomService.createGroupRoom()에서도 HOST 중복을 처리하므로
+         * HOST가 memberUserIds에 포함되어 있어도 문제없습니다.
+         */
+        List<Long> memberUserIds = gatheringMemberRepository
+                .findByGatheringIdWithUser(gatheringId)
+                .stream()
+                .map(GatheringMember::getUser)
+                .map(User::getId)
+                .distinct()
+                .toList();
+
+        /*
+         * 모임 상태를 CONFIRMED로 변경하고 confirmedAt을 기록합니다.
+         */
         gathering.confirm();
 
-        // 채팅방 생성은 chat 도메인 구축 후 연계 → 현재 chatRoomId=null
+        /*
+         * 이미 ChatRoomService에 구현된 그룹 채팅방 생성 기능을 호출합니다.
+         *
+         * createGroupRoom()은 동일한 gatheringId의 채팅방이 존재하면
+         * 기존 채팅방 ID를 반환하도록 구현되어 있으므로 중복 생성도 방지됩니다.
+         */
+        Long chatRoomId = chatRoomService.createGroupRoom(
+                gathering.getId(),
+                gathering.getTitle(),
+                gathering.getHost().getId(),
+                memberUserIds
+        );
+
         return new GatheringConfirmResponse(
                 gathering.getId(),
                 gathering.getStatus(),
                 gathering.getConfirmedAt(),
-                null
+                chatRoomId
         );
     }
-
     @Transactional
     public GatheringCancelResponse cancel(
             String authUserId,
