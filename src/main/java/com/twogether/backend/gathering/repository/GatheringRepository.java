@@ -13,6 +13,9 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.repository.query.Param;
 
 import java.util.Optional;
+import java.time.OffsetDateTime;
+import java.util.Collection;
+import com.twogether.backend.gathering.domain.GatheringStatus;
 
 public interface GatheringRepository
         extends JpaRepository<Gathering, Long>,
@@ -37,5 +40,9 @@ public interface GatheringRepository
     Page<Gathering> findAll(
             Specification<Gathering> spec,
             Pageable pageable
+    );
+
+    long countByConfirmedAtGreaterThanEqualAndConfirmedAtLessThanAndStatusIn(
+            OffsetDateTime start, OffsetDateTime end, Collection<GatheringStatus> statuses
     );
 }
