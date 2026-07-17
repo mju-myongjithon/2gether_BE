@@ -22,7 +22,13 @@ public record ChatMessageSendRequest(
                 description = "클라이언트 생성 멱등키(UUID). 소켓 재전송 시 중복 저장을 방지합니다.",
                 example = "3f2504e0-4f89-11d3-9a0c-0305e82c3301"
         )
-        UUID clientMessageId
+        UUID clientMessageId,
+
+        @Schema(
+                description = "답장 대상 메시지 ID (선택사항)",
+                example = "123"
+        )
+        Long repliedToMessageId
 
 ) {
 }

@@ -1,5 +1,6 @@
 package com.twogether.backend.chat.repository;
 
+import com.twogether.backend.chat.domain.ChatMemberRole;
 import com.twogether.backend.chat.domain.ChatRoomMember;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -44,5 +45,13 @@ public interface ChatRoomMemberRepository
     boolean existsByChatRoomIdAndUserIdAndLeftAtIsNull(
             Long chatRoomId,
             Long userId
+    );
+
+    /*
+     * 특정 방의 방장(OWNER) 조회.
+     */
+    Optional<ChatRoomMember> findByChatRoomIdAndRoleAndLeftAtIsNull(
+            Long chatRoomId,
+            ChatMemberRole role
     );
 }

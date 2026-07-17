@@ -34,7 +34,8 @@ public class SecurityConfig {
                         // 서버 상태 확인 API 허용
                         .requestMatchers(
                                 "/actuator/health",
-                                "/api/health"
+                                "/api/health",
+                                "/ws-stomp/**"
                         ).permitAll()
 
                         // 닉네임 중복 확인은 로그인 전에 사용할 수 있으므로 허용

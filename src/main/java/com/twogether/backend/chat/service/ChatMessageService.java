@@ -3,6 +3,7 @@ package com.twogether.backend.chat.service;
 import com.twogether.backend.chat.domain.ChatRoom;
 import com.twogether.backend.chat.domain.Message;
 import com.twogether.backend.chat.domain.MessageAttachment;
+import com.twogether.backend.chat.domain.MessageRead;
 import com.twogether.backend.chat.domain.MessageType;
 import com.twogether.backend.chat.dto.request.ChatMessageSendRequest;
 import com.twogether.backend.chat.dto.request.ImageAttachmentRequest;
@@ -14,6 +15,7 @@ import com.twogether.backend.chat.event.MessageCreatedEvent;
 import com.twogether.backend.chat.repository.ChatRoomMemberRepository;
 import com.twogether.backend.chat.repository.ChatRoomRepository;
 import com.twogether.backend.chat.repository.MessageAttachmentRepository;
+import com.twogether.backend.chat.repository.MessageReadRepository;
 import com.twogether.backend.chat.repository.MessageRepository;
 import com.twogether.backend.global.exception.BusinessException;
 import com.twogether.backend.global.exception.ErrorCode;
@@ -55,6 +57,7 @@ public class ChatMessageService {
     private final ChatRoomMemberRepository chatRoomMemberRepository;
     private final MessageRepository messageRepository;
     private final MessageAttachmentRepository messageAttachmentRepository;
+    private final MessageReadRepository messageReadRepository;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
     private final ApplicationEventPublisher eventPublisher;
@@ -64,6 +67,7 @@ public class ChatMessageService {
             ChatRoomMemberRepository chatRoomMemberRepository,
             MessageRepository messageRepository,
             MessageAttachmentRepository messageAttachmentRepository,
+            MessageReadRepository messageReadRepository,
             UserRepository userRepository,
             SimpMessagingTemplate messagingTemplate,
             ApplicationEventPublisher eventPublisher
@@ -72,6 +76,7 @@ public class ChatMessageService {
         this.chatRoomMemberRepository = chatRoomMemberRepository;
         this.messageRepository = messageRepository;
         this.messageAttachmentRepository = messageAttachmentRepository;
+        this.messageReadRepository = messageReadRepository;
         this.userRepository = userRepository;
         this.messagingTemplate = messagingTemplate;
         this.eventPublisher = eventPublisher;
@@ -96,16 +101,24 @@ public class ChatMessageService {
             Optional<Message> duplicated = messageRepository
                     .findByChatRoomIdAndClientMessageId(roomId, request.clientMessageId());
             if (duplicated.isPresent()) {
-                return ChatMessageResponse.from(duplicated.get());
+                Long readByCount = messageReadRepository.countByMessageId(duplicated.get().getId());
+                return ChatMessageResponse.from(duplicated.get(), List.of(), readByCount);
             }
         }
 
+        Message repliedToMessage = null;
+        if (request.repliedToMessageId() != null) {
+            repliedToMessage = messageRepository.findById(request.repliedToMessageId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.INVALID_REQUEST));
+        }
+
         Message message = messageRepository.save(
-                Message.text(room, sender, request.content(), request.clientMessageId())
+                Message.text(room, sender, request.content(), request.clientMessageId(), repliedToMessage)
         );
         room.updateLastMessage(message.getId(), message.getCreatedAt());
 
-        ChatMessageResponse response = ChatMessageResponse.from(message);
+        Long readByCount = 0L;
+        ChatMessageResponse response = ChatMessageResponse.from(message, List.of(), message.getRepliedToMessage() != null ? message.getRepliedToMessage().getId() : null, readByCount);
         broadcastAndPublish(roomId, message, sender.getId(), request.content(), response);
 
         return response;
@@ -129,7 +142,8 @@ public class ChatMessageService {
             Optional<Message> duplicated = messageRepository
                     .findByChatRoomIdAndClientMessageId(roomId, request.clientMessageId());
             if (duplicated.isPresent()) {
-                return ChatMessageResponse.from(duplicated.get(), loadAttachments(duplicated.get().getId()));
+                Long readByCount = messageReadRepository.countByMessageId(duplicated.get().getId());
+                return ChatMessageResponse.from(duplicated.get(), loadAttachments(duplicated.get().getId()), readByCount);
             }
         }
 
@@ -159,7 +173,8 @@ public class ChatMessageService {
 
         room.updateLastMessage(message.getId(), message.getCreatedAt());
 
-        ChatMessageResponse response = ChatMessageResponse.from(message, attachmentResponses);
+        Long readByCount = 0L;
+        ChatMessageResponse response = ChatMessageResponse.from(message, attachmentResponses, readByCount);
         broadcastAndPublish(roomId, message, sender.getId(), IMAGE_PREVIEW, response);
 
         return response;
@@ -193,10 +208,14 @@ public class ChatMessageService {
         Map<Long, List<MessageAttachmentResponse>> attachmentsByMessage =
                 loadAttachmentsFor(pageRows);
 
+        Map<Long, Long> readCountByMessage = loadReadCountsFor(pageRows);
+
         List<ChatMessageResponse> content = pageRows.stream()
                 .map(message -> ChatMessageResponse.from(
                         message,
-                        attachmentsByMessage.getOrDefault(message.getId(), List.of())
+                        attachmentsByMessage.getOrDefault(message.getId(), List.of()),
+                        message.getRepliedToMessage() != null ? message.getRepliedToMessage().getId() : null,
+                        readCountByMessage.getOrDefault(message.getId(), 0L)
                 ))
                 .toList();
 
@@ -233,6 +252,24 @@ public class ChatMessageService {
         return messageAttachmentRepository.findAllByMessageIdOrderBySortOrderAsc(messageId).stream()
                 .map(MessageAttachmentResponse::from)
                 .toList();
+    }
+
+    private Map<Long, Long> loadReadCountsFor(
+            List<Message> messages
+    ) {
+        List<Long> messageIds = messages.stream()
+                .map(Message::getId)
+                .toList();
+
+        if (messageIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return messageIds.stream()
+                .collect(Collectors.toMap(
+                        id -> id,
+                        messageReadRepository::countByMessageId
+                ));
     }
 
     private void broadcastAndPublish(

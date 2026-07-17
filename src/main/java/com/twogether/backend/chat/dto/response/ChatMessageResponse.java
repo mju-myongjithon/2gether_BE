@@ -33,17 +33,43 @@ public record ChatMessageResponse(
         List<MessageAttachmentResponse> attachments,
 
         @Schema(description = "전송 일시", example = "2026-07-13T21:10:00+09:00")
-        OffsetDateTime createdAt
+        OffsetDateTime createdAt,
+
+        @Schema(description = "클라이언트 메시지 ID", example = "uuid-xxx")
+        String clientMessageId,
+
+        @Schema(description = "답장 대상 메시지 ID (선택사항)", example = "100")
+        Long repliedToMessageId,
+
+        @Schema(description = "읽은 사용자 수", example = "3")
+        Long readByCount
 
 ) {
 
     public static ChatMessageResponse from(Message message) {
-        return from(message, List.of());
+        return from(message, List.of(), null, 0L);
     }
 
     public static ChatMessageResponse from(
             Message message,
             List<MessageAttachmentResponse> attachments
+    ) {
+        return from(message, attachments, null, 0L);
+    }
+
+    public static ChatMessageResponse from(
+            Message message,
+            List<MessageAttachmentResponse> attachments,
+            Long readByCount
+    ) {
+        return from(message, attachments, null, readByCount);
+    }
+
+    public static ChatMessageResponse from(
+            Message message,
+            List<MessageAttachmentResponse> attachments,
+            Long repliedToMessageId,
+            Long readByCount
     ) {
         User sender = message.getSender();
         return new ChatMessageResponse(
@@ -54,7 +80,10 @@ public record ChatMessageResponse(
                 message.getType(),
                 message.getContent(),
                 attachments,
-                message.getCreatedAt()
+                message.getCreatedAt(),
+                message.getClientMessageId() == null ? null : message.getClientMessageId().toString(),
+                repliedToMessageId != null ? repliedToMessageId : (message.getRepliedToMessage() != null ? message.getRepliedToMessage().getId() : null),
+                readByCount
         );
     }
 }

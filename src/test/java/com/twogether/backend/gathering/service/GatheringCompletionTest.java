@@ -15,6 +15,7 @@ import com.twogether.backend.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import com.twogether.backend.chat.service.ChatRoomService;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,7 +41,8 @@ class GatheringCompletionTest {
                 mock(GatheringImageRepository.class),
                 mock(TagRepository.class),
                 userRepository,
-                mock(DepartmentRepository.class)
+                mock(DepartmentRepository.class),
+                mock(ChatRoomService.class)
         );
     }
 

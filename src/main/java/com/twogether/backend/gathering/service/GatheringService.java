@@ -34,6 +34,7 @@ import com.twogether.backend.global.response.PageResponse;
 import com.twogether.backend.tag.repository.TagRepository;
 import com.twogether.backend.user.domain.User;
 import com.twogether.backend.user.repository.UserRepository;
+import com.twogether.backend.chat.service.ChatRoomService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -61,6 +62,7 @@ public class GatheringService {
     private final TagRepository tagRepository;
     private final UserRepository userRepository;
     private final DepartmentRepository departmentRepository;
+    private final ChatRoomService chatRoomService;
 
     public GatheringService(
             GatheringRepository gatheringRepository,
@@ -69,7 +71,8 @@ public class GatheringService {
             GatheringImageRepository gatheringImageRepository,
             TagRepository tagRepository,
             UserRepository userRepository,
-            DepartmentRepository departmentRepository
+            DepartmentRepository departmentRepository,
+            ChatRoomService chatRoomService
     ) {
         this.gatheringRepository = gatheringRepository;
         this.gatheringMemberRepository = gatheringMemberRepository;
@@ -78,6 +81,7 @@ public class GatheringService {
         this.tagRepository = tagRepository;
         this.userRepository = userRepository;
         this.departmentRepository = departmentRepository;
+        this.chatRoomService = chatRoomService;
     }
 
     /**
@@ -460,12 +464,23 @@ public class GatheringService {
 
         gathering.confirm();
 
-        // 채팅방 생성은 chat 도메인 구축 후 연계 → 현재 chatRoomId=null
+        List<Long> memberUserIds = gatheringMemberRepository.findByGatheringIdWithUser(gatheringId)
+                .stream()
+                .map(m -> m.getUser().getId())
+                .toList();
+
+        Long chatRoomId = chatRoomService.createGroupRoom(
+                gatheringId,
+                gathering.getTitle(),
+                gathering.getHost().getId(),
+                memberUserIds
+        );
+
         return new GatheringConfirmResponse(
                 gathering.getId(),
                 gathering.getStatus(),
                 gathering.getConfirmedAt(),
-                null
+                chatRoomId
         );
     }
 
