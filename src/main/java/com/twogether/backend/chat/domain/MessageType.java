@@ -8,9 +8,12 @@ public enum MessageType {
     @Schema(description = "텍스트 메시지")
     TEXT,
 
-    @Schema(description = "이미지 메시지")
+    @Schema(description = "이미지 메시지 (message_attachment 참조)")
     IMAGE,
 
-    @Schema(description = "시스템 메시지 (입장/퇴장 등)")
-    SYSTEM
+    @Schema(description = "시스템 메시지 (입장/퇴장/확정 등, sender=null, 상세는 meta)")
+    SYSTEM,
+
+    @Schema(description = "카드 메시지 (AI 추천/공유 카드, 상세는 meta)")
+    CARD
 }

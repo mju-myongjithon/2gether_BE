@@ -40,4 +40,10 @@ public interface GatheringTagRepository
     List<GatheringTagName> findTagNamesByGatheringIds(
             @Param("gatheringIds") List<Long> gatheringIds
     );
+
+    /**
+     * 특정 모임에 연결된 태그 목록을 조회한다.
+     * AI 팀원 추천에서 모임 태그와 사용자 태그를 비교할 때 사용한다.
+     */
+    List<GatheringTag> findAllByGathering_Id(Long gatheringId);
 }

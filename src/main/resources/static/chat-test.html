@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>유대감 채팅 STOMP 테스트</title>
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs@7/bundles/stomp.umd.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: -apple-system, system-ui, "Malgun Gothic", sans-serif; margin: 0; padding: 20px; background: #f5f6f8; color: #1a1a1a; }
+        h1 { font-size: 18px; margin: 0 0 16px; }
+        .card { background: #fff; border: 1px solid #e3e6ea; border-radius: 10px; padding: 16px; margin-bottom: 14px; }
+        label { display: block; font-size: 12px; color: #555; margin: 8px 0 4px; }
+        input, textarea, select { width: 100%; padding: 8px 10px; border: 1px solid #cdd2d8; border-radius: 6px; font-size: 14px; }
+        textarea { resize: vertical; }
+        .row { display: flex; gap: 10px; }
+        .row > div { flex: 1; }
+        button { padding: 9px 14px; border: 0; border-radius: 6px; font-size: 14px; cursor: pointer; }
+        .primary { background: #2f6df6; color: #fff; }
+        .danger { background: #e5534b; color: #fff; }
+        .ghost { background: #eef1f5; color: #333; }
+        button:disabled { opacity: .5; cursor: not-allowed; }
+        .status { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+        .on { background: #e4f6e9; color: #1a7f37; }
+        .off { background: #fdeaea; color: #c0392b; }
+        #log { height: 320px; overflow-y: auto; background: #0f1420; color: #d6e2f0; border-radius: 8px; padding: 12px; font: 12px/1.5 ui-monospace, Menlo, monospace; white-space: pre-wrap; }
+        .log-recv { color: #8fd4a0; }
+        .log-send { color: #f0c674; }
+        .log-sys  { color: #7fb2ff; }
+        .log-err  { color: #ff9a9a; }
+        .actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    </style>
+</head>
+<body>
+<h1>유대감 채팅 STOMP 테스트 &nbsp;<span id="status" class="status off">연결 안 됨</span></h1>
+
+<div class="card">
+    <label>Base URL (서버 주소)</label>
+    <input id="baseUrl" value="http://localhost:8080" placeholder="http://localhost:8080 또는 http://52.78.40.97:8080" />
+    <label>Access Token (Supabase JWT, "Bearer " 없이 토큰만)</label>
+    <textarea id="token" rows="3" placeholder="eyJhbGciOi..."></textarea>
+    <label>Room ID</label>
+    <input id="roomId" value="10" />
+    <div class="actions">
+        <button id="btnConnect" class="primary">연결 + 구독</button>
+        <button id="btnDisconnect" class="danger" disabled>연결 해제</button>
+    </div>
+</div>
+
+<div class="card">
+    <label>메시지 (type=TEXT)</label>
+    <div class="row">
+        <div style="flex:3"><input id="content" placeholder="보낼 메시지" /></div>
+        <div style="flex:1; display:flex; align-items:flex-end;">
+            <button id="btnSend" class="primary" style="width:100%" disabled>STOMP 발행</button>
+        </div>
+    </div>
+    <div class="actions">
+        <button id="btnSendRest" class="ghost" disabled>REST 폴백으로 전송</button>
+        <button id="btnClear" class="ghost">로그 지우기</button>
+    </div>
+    <p style="font-size:12px;color:#777;margin:8px 0 0">
+        발행 → <code>/pub/chat/rooms/{roomId}/send</code> · 구독 → <code>/sub/chat/rooms/{roomId}</code> · 엔드포인트 → <code>/ws-stomp</code>
+    </p>
+</div>
+
+<div class="card">
+    <div id="log"></div>
+</div>
+
+<script>
+    let client = null;
+
+    const $ = (id) => document.getElementById(id);
+    const logBox = $("log");
+
+    function log(msg, cls) {
+        const t = new Date().toLocaleTimeString();
+        const line = document.createElement("div");
+        if (cls) line.className = cls;
+        line.textContent = `[${t}] ${msg}`;
+        logBox.appendChild(line);
+        logBox.scrollTop = logBox.scrollHeight;
+    }
+
+    function setConnected(on) {
+        $("status").textContent = on ? "연결됨" : "연결 안 됨";
+        $("status").className = "status " + (on ? "on" : "off");
+        $("btnConnect").disabled = on;
+        $("btnDisconnect").disabled = !on;
+        $("btnSend").disabled = !on;
+        $("btnSendRest").disabled = !on;
+    }
+
+    function uuid() {
+        return (crypto.randomUUID && crypto.randomUUID()) ||
+            "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, c => {
+                const r = Math.random() * 16 | 0, v = c === "x" ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+    }
+
+    $("btnConnect").onclick = () => {
+        const baseUrl = $("baseUrl").value.trim().replace(/\/$/, "");
+        const token = $("token").value.trim();
+        const roomId = $("roomId").value.trim();
+        if (!token) { log("Access Token을 입력하세요.", "log-err"); return; }
+
+        client = new StompJs.Client({
+            webSocketFactory: () => new SockJS(baseUrl + "/ws-stomp"),
+            connectHeaders: { Authorization: "Bearer " + token },
+            reconnectDelay: 0,
+            debug: () => {},
+            onConnect: () => {
+                setConnected(true);
+                log("CONNECT 성공. 방 " + roomId + " 구독합니다.", "log-sys");
+                client.subscribe("/sub/chat/rooms/" + roomId, (frame) => {
+                    try {
+                        const body = JSON.parse(frame.body);
+                        log("수신 ⬇  " + JSON.stringify(body), "log-recv");
+                    } catch (e) {
+                        log("수신 ⬇  " + frame.body, "log-recv");
+                    }
+                });
+            },
+            onStompError: (frame) => {
+                log("STOMP 오류: " + (frame.headers["message"] || "") + " / " + frame.body, "log-err");
+            },
+            onWebSocketClose: () => { setConnected(false); log("연결 종료됨.", "log-sys"); },
+            onWebSocketError: () => { log("WebSocket 오류(주소/토큰/CORS 확인).", "log-err"); }
+        });
+        log("연결 시도: " + baseUrl + "/ws-stomp", "log-sys");
+        client.activate();
+    };
+
+    $("btnDisconnect").onclick = () => {
+        if (client) client.deactivate();
+        setConnected(false);
+    };
+
+    $("btnSend").onclick = () => {
+        const roomId = $("roomId").value.trim();
+        const content = $("content").value;
+        if (!content) return;
+        const payload = { type: "TEXT", content, clientMessageId: uuid() };
+        client.publish({ destination: "/pub/chat/rooms/" + roomId + "/send", body: JSON.stringify(payload) });
+        log("발행 ⬆  " + JSON.stringify(payload), "log-send");
+        $("content").value = "";
+    };
+
+    $("btnSendRest").onclick = async () => {
+        const baseUrl = $("baseUrl").value.trim().replace(/\/$/, "");
+        const token = $("token").value.trim();
+        const roomId = $("roomId").value.trim();
+        const content = $("content").value;
+        if (!content) return;
+        const payload = { type: "TEXT", content, clientMessageId: uuid() };
+        try {
+            const res = await fetch(baseUrl + "/api/chat-rooms/" + roomId + "/messages", {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            log("REST 응답(" + res.status + "): " + JSON.stringify(data), res.ok ? "log-send" : "log-err");
+            $("content").value = "";
+        } catch (e) {
+            log("REST 오류: " + e.message, "log-err");
+        }
+    };
+
+    $("btnClear").onclick = () => { logBox.innerHTML = ""; };
+
+    $("content").addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !$("btnSend").disabled) $("btnSend").click();
+    });
+</script>
+</body>
+</html>

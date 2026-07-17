@@ -16,6 +16,17 @@ public interface UserTagRepository
             Long userId
     );
 
+    @Query("""
+            select ut
+            from UserTag ut
+            join fetch ut.tag
+            where ut.user.id in :userIds
+            order by ut.user.id asc, ut.tag.id asc
+            """)
+    List<UserTag> findAllByUserIdsWithTag(
+            @Param("userIds") List<Long> userIds
+    );
+
     @Modifying(flushAutomatically = true)
     @Query("""
             delete from UserTag ut
