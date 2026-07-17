@@ -310,6 +310,18 @@ public enum ErrorCode {
             "대화 주제 추천 결과를 생성하지 못했습니다."
     ),
 
+    MISSION_RECOMMENDATION_NOT_AVAILABLE(
+            HttpStatus.BAD_REQUEST,
+            "MISSION_RECOMMENDATION_NOT_AVAILABLE",
+            "모임과 연결된 채팅방에서만 모임 미션을 추천할 수 있습니다."
+    ),
+
+    MISSION_RECOMMENDATION_FAILED(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "MISSION_RECOMMENDATION_FAILED",
+            "모임 미션 추천 결과를 생성하지 못했습니다."
+    ),
+
     CHAT_NOTICE_NOT_FOUND(
             HttpStatus.NOT_FOUND,
             "CHAT_NOTICE_NOT_FOUND",
