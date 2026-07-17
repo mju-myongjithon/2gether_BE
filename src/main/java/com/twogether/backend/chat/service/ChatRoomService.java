@@ -3,9 +3,13 @@ package com.twogether.backend.chat.service;
 import com.twogether.backend.chat.domain.ChatRoom;
 import com.twogether.backend.chat.domain.ChatRoomMember;
 import com.twogether.backend.chat.domain.Message;
+import com.twogether.backend.chat.dto.request.ChatReadRequest;
+import com.twogether.backend.chat.dto.response.ChatReadResponse;
+import com.twogether.backend.chat.dto.response.ChatNoticeResponse;
 import com.twogether.backend.chat.dto.response.ChatRoomDetailResponse;
 import com.twogether.backend.chat.dto.response.ChatRoomMemberResponse;
 import com.twogether.backend.chat.dto.response.ChatRoomSummaryResponse;
+import com.twogether.backend.chat.repository.ChatNoticeRepository;
 import com.twogether.backend.chat.repository.ChatRoomMemberRepository;
 import com.twogether.backend.chat.repository.ChatRoomRepository;
 import com.twogether.backend.chat.repository.MessageRepository;
@@ -42,6 +46,7 @@ import java.util.stream.Collectors;
 public class ChatRoomService {
 
     private final ChatRoomRepository chatRoomRepository;
+    private final ChatNoticeRepository chatNoticeRepository;
     private final ChatRoomMemberRepository chatRoomMemberRepository;
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
@@ -49,12 +54,14 @@ public class ChatRoomService {
 
     public ChatRoomService(
             ChatRoomRepository chatRoomRepository,
+            ChatNoticeRepository chatNoticeRepository,
             ChatRoomMemberRepository chatRoomMemberRepository,
             MessageRepository messageRepository,
             UserRepository userRepository,
             DepartmentRepository departmentRepository
     ) {
         this.chatRoomRepository = chatRoomRepository;
+        this.chatNoticeRepository = chatNoticeRepository;
         this.chatRoomMemberRepository = chatRoomMemberRepository;
         this.messageRepository = messageRepository;
         this.userRepository = userRepository;
@@ -261,12 +268,18 @@ public class ChatRoomService {
                 .map(member -> toMemberResponse(member, departmentMap))
                 .toList();
 
+        ChatNoticeResponse activeNotice = chatNoticeRepository
+                .findByChatRoomIdAndIsActiveTrue(roomId)
+                .map(ChatNoticeResponse::from)
+                .orElse(null);
+
         return new ChatRoomDetailResponse(
                 room.getId(),
                 room.getGatheringId(),
                 room.getType(),
                 room.getTitle(),
                 room.getCreatedAt(),
+                activeNotice,
                 memberResponses
         );
     }
@@ -307,6 +320,44 @@ public class ChatRoomService {
                 departmentName,
                 campus
         );
+    }
+
+    /**
+     * 방을 읽음 처리한다. last_read_message_id 를 전진 방향으로만 갱신하고
+     * 갱신 후의 안읽음 수를 계산해 반환한다.
+     *
+     * <p>요청 값이 방의 마지막 메시지 id 를 초과하면 마지막 메시지로 클램프하고,
+     * 현재 값보다 과거면 무시(전진 전용)한다.</p>
+     */
+    @Transactional
+    public ChatReadResponse markRead(
+            String authUserId,
+            Long roomId,
+            ChatReadRequest request
+    ) {
+        User me = findUser(authUserId);
+
+        ChatRoom room = chatRoomRepository.findById(roomId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.CHAT_ROOM_NOT_FOUND));
+
+        ChatRoomMember membership = chatRoomMemberRepository
+                .findByChatRoomIdAndUserId(roomId, me.getId())
+                .filter(ChatRoomMember::isParticipating)
+                .orElseThrow(() -> new BusinessException(ErrorCode.FORBIDDEN));
+
+        Long requested = request.lastReadMessageId();
+        if (room.getLastMessageId() != null && requested > room.getLastMessageId()) {
+            requested = room.getLastMessageId();
+        }
+
+        Long current = membership.getLastReadMessageId();
+        Long newLastRead = (current == null || requested > current) ? requested : current;
+        membership.updateLastReadMessageId(newLastRead);
+
+        int unreadCount = (int) messageRepository
+                .countByChatRoomIdAndIdGreaterThan(roomId, newLastRead);
+
+        return new ChatReadResponse(roomId, newLastRead, unreadCount);
     }
 
     private User findUser(

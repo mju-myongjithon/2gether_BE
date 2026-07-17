@@ -24,6 +24,9 @@ public record ChatRoomDetailResponse(
         @Schema(description = "채팅방 생성 일시", example = "2026-07-09T20:20:00+09:00")
         OffsetDateTime createdAt,
 
+        @Schema(description = "상단 고정 활성 공지 (없으면 null)")
+        ChatNoticeResponse activeNotice,
+
         @Schema(description = "참여자 목록")
         List<ChatRoomMemberResponse> members
 

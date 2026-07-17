@@ -2,12 +2,16 @@ package com.twogether.backend.chat.controller;
 
 import com.twogether.backend.chat.dto.request.ChatMessageSendRequest;
 import com.twogether.backend.chat.dto.request.ChatReadRequest;
+import com.twogether.backend.chat.dto.request.ChatNoticeCreateRequest;
+import com.twogether.backend.chat.dto.request.ImageMessageSendRequest;
 import com.twogether.backend.chat.dto.response.ChatMessagePageResponse;
 import com.twogether.backend.chat.dto.response.ChatMessageResponse;
+import com.twogether.backend.chat.dto.response.ChatNoticeResponse;
 import com.twogether.backend.chat.dto.response.ChatReadResponse;
 import com.twogether.backend.chat.dto.response.ChatRoomDetailResponse;
 import com.twogether.backend.chat.dto.response.ChatRoomSummaryResponse;
 import com.twogether.backend.chat.service.ChatMessageService;
+import com.twogether.backend.chat.service.ChatNoticeService;
 import com.twogether.backend.chat.service.ChatRoomService;
 import com.twogether.backend.global.response.ApiResponse;
 import com.twogether.backend.global.response.PageResponse;
@@ -19,6 +23,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -38,13 +43,16 @@ public class ChatController {
 
     private final ChatRoomService chatRoomService;
     private final ChatMessageService chatMessageService;
+    private final ChatNoticeService chatNoticeService;
 
     public ChatController(
             ChatRoomService chatRoomService,
-            ChatMessageService chatMessageService
+            ChatMessageService chatMessageService,
+            ChatNoticeService chatNoticeService
     ) {
         this.chatRoomService = chatRoomService;
         this.chatMessageService = chatMessageService;
+        this.chatNoticeService = chatNoticeService;
     }
 
     @Operation(
@@ -143,23 +151,101 @@ public class ChatController {
     }
 
     @Operation(
+            summary = "이미지 메시지 전송",
+            description = """
+                    이미지 메시지를 전송합니다. 첨부(URL·썸네일·크기 등)는 message_attachment로 저장됩니다.
+
+                    파일 바이트는 서버가 다루지 않습니다. 클라이언트가 스토리지에 업로드한 뒤
+                    확보한 URL을 attachments로 전달하세요. clientMessageId로 재전송이 멱등 처리됩니다.
+                    """
+    )
+    @PostMapping("/{roomId}/messages/images")
+    public ResponseEntity<ApiResponse<ChatMessageResponse>> sendImageMessage(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long roomId,
+            @Valid @RequestBody ImageMessageSendRequest request
+    ) {
+        ChatMessageResponse response =
+                chatMessageService.sendImage(jwt.getSubject(), roomId, request);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("이미지 메시지가 전송되었습니다.", response)
+        );
+    }
+
+    @Operation(
+            summary = "채팅방 공지 등록",
+            description = """
+                    상단 고정 공지를 등록합니다. 방장(OWNER)만 등록할 수 있습니다.
+
+                    기존 활성 공지가 있으면 해제되고 새 공지가 활성화됩니다(방당 활성 공지 1건).
+                    등록 시 SYSTEM 메시지가 발행되어 채팅 흐름에도 표시됩니다.
+                    """
+    )
+    @PostMapping("/{roomId}/notices")
+    public ResponseEntity<ApiResponse<ChatNoticeResponse>> registerNotice(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long roomId,
+            @Valid @RequestBody ChatNoticeCreateRequest request
+    ) {
+        ChatNoticeResponse response =
+                chatNoticeService.register(jwt.getSubject(), roomId, request);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("공지가 등록되었습니다.", response)
+        );
+    }
+
+    @Operation(
+            summary = "채팅방 활성 공지 조회",
+            description = "현재 상단 고정 활성 공지를 조회합니다. 없으면 data=null. 참여자만 조회할 수 있습니다."
+    )
+    @GetMapping("/{roomId}/notices/active")
+    public ResponseEntity<ApiResponse<ChatNoticeResponse>> getActiveNotice(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long roomId
+    ) {
+        ChatNoticeResponse response =
+                chatNoticeService.getActive(jwt.getSubject(), roomId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("활성 공지 조회에 성공했습니다.", response)
+        );
+    }
+
+    @Operation(
+            summary = "채팅방 공지 해제",
+            description = "현재 활성 공지를 해제합니다. 방장(OWNER)만 해제할 수 있습니다."
+    )
+    @DeleteMapping("/{roomId}/notices/active")
+    public ResponseEntity<ApiResponse<Void>> deactivateNotice(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long roomId
+    ) {
+        chatNoticeService.deactivateActive(jwt.getSubject(), roomId);
+
+        return ResponseEntity.ok(
+                ApiResponse.success("공지가 해제되었습니다.")
+        );
+    }
+
+    @Operation(
             summary = "메시지 읽음 처리",
             description = """
-                    특정 메시지까지 읽음 처리하여 unreadCount를 갱신합니다.
+                    특정 메시지까지 읽음 처리하여 last_read_message_id 를 전진 갱신하고,
+                    갱신 후의 안읽음 수(unreadCount)를 반환합니다.
 
-                    ⚠️ 현재는 스켈레톤 더미 응답입니다. 실제 반영은 이슈 C5에서 진행합니다.
+                    참여 중인 사용자만 호출할 수 있습니다.
                     """
     )
     @PostMapping("/{roomId}/read")
     public ResponseEntity<ApiResponse<ChatReadResponse>> readMessages(
+            @AuthenticationPrincipal Jwt jwt,
             @PathVariable Long roomId,
-            @RequestBody ChatReadRequest request
+            @Valid @RequestBody ChatReadRequest request
     ) {
-        ChatReadResponse response = new ChatReadResponse(
-                roomId,
-                request.lastReadMessageId(),
-                0
-        );
+        ChatReadResponse response =
+                chatRoomService.markRead(jwt.getSubject(), roomId, request);
 
         return ResponseEntity.ok(
                 ApiResponse.success("읽음 처리되었습니다.", response)

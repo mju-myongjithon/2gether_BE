@@ -196,6 +196,12 @@ public enum ErrorCode {
             "채팅방을 찾을 수 없습니다."
     ),
 
+    CHAT_NOTICE_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "CHAT_NOTICE_NOT_FOUND",
+            "활성화된 공지가 없습니다."
+    ),
+
     INTERNAL_SERVER_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "INTERNAL_SERVER_ERROR",
