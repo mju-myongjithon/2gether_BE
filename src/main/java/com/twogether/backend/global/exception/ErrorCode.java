@@ -322,6 +322,24 @@ public enum ErrorCode {
             "모임 미션 추천 결과를 생성하지 못했습니다."
     ),
 
+    CONTENT_RECOMMENDATION_FAILED(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "CONTENT_RECOMMENDATION_FAILED",
+            "맞춤 콘텐츠 추천 결과를 생성하지 못했습니다."
+    ),
+
+    INVALID_RECOMMENDATION_URL(
+            HttpStatus.INTERNAL_SERVER_ERROR,
+            "INVALID_RECOMMENDATION_URL",
+            "추천 콘텐츠 URL이 안전하지 않습니다."
+    ),
+
+    AI_CLIENT_NOT_CONFIGURED(
+            HttpStatus.SERVICE_UNAVAILABLE,
+            "AI_CLIENT_NOT_CONFIGURED",
+            "웹 검색 AI Client가 설정되지 않았습니다."
+    ),
+
     CHAT_NOTICE_NOT_FOUND(
             HttpStatus.NOT_FOUND,
             "CHAT_NOTICE_NOT_FOUND",
