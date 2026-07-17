@@ -212,6 +212,34 @@ public enum ErrorCode {
             HttpStatus.BAD_REQUEST,
             "INVALID_RECOMMENDATION_COUNT",
             "추천 인원은 1명 이상이며 후보 사용자 수보다 많을 수 없습니다."
+    CHAT_ROOM_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "CHAT_ROOM_NOT_FOUND",
+            "채팅방을 찾을 수 없습니다."
+    ),
+
+    CHAT_NOTICE_NOT_FOUND(
+            HttpStatus.NOT_FOUND,
+            "CHAT_NOTICE_NOT_FOUND",
+            "활성화된 공지가 없습니다."
+    ),
+
+    INVALID_QUICK_CODE(
+            HttpStatus.BAD_REQUEST,
+            "INVALID_QUICK_CODE",
+            "유효하지 않은 안심 커넥트 코드입니다."
+    ),
+
+    EXPIRED_QUICK_CODE(
+            HttpStatus.BAD_REQUEST,
+            "EXPIRED_QUICK_CODE",
+            "만료된 안심 커넥트 코드입니다."
+    ),
+
+    ALREADY_USED_QUICK_CODE(
+            HttpStatus.CONFLICT,
+            "ALREADY_USED_QUICK_CODE",
+            "이미 사용된 안심 커넥트 코드입니다."
     ),
 
     INTERNAL_SERVER_ERROR(
