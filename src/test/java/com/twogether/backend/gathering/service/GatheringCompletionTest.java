@@ -1,5 +1,6 @@
 package com.twogether.backend.gathering.service;
 
+import com.twogether.backend.bookmark.repository.GatheringBookmarkRepository;
 import com.twogether.backend.department.repository.DepartmentRepository;
 import com.twogether.backend.chat.service.ChatRoomService;
 import com.twogether.backend.gathering.domain.Gathering;
@@ -10,13 +11,13 @@ import com.twogether.backend.gathering.repository.GatheringRepository;
 import com.twogether.backend.gathering.repository.GatheringTagRepository;
 import com.twogether.backend.global.exception.BusinessException;
 import com.twogether.backend.global.exception.ErrorCode;
+import com.twogether.backend.notification.service.NotificationDispatchService;
 import com.twogether.backend.tag.repository.TagRepository;
 import com.twogether.backend.user.domain.User;
 import com.twogether.backend.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.twogether.backend.chat.service.ChatRoomService;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -43,7 +44,9 @@ class GatheringCompletionTest {
                 mock(TagRepository.class),
                 userRepository,
                 mock(DepartmentRepository.class),
-                mock(ChatRoomService.class)
+                mock(GatheringBookmarkRepository.class),
+                mock(ChatRoomService.class),
+                mock(NotificationDispatchService.class)
         );
     }
 

@@ -79,4 +79,6 @@ public interface GatheringMemberRepository
 
     @Query("select count(distinct m.user.id) from GatheringMember m where m.gathering.id in :gatheringIds")
     long countDistinctUsersByGatheringIds(@Param("gatheringIds") List<Long> gatheringIds);
+
+    long countByUserId(Long userId);
 }

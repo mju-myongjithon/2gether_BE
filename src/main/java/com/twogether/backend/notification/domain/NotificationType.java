@@ -23,6 +23,9 @@ public enum NotificationType {
     @Schema(description = "채팅방 공지 등록")
     CHAT_NOTICE,
 
+    @Schema(description = "새 채팅 메시지")
+    CHAT_MESSAGE,
+
     @Schema(description = "시스템 알림")
     SYSTEM
 }

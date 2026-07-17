@@ -1,7 +1,9 @@
 package com.twogether.backend.user.service;
 
 import com.twogether.backend.availability.repository.AvailabilityRepository;
+import com.twogether.backend.bookmark.repository.UserBookmarkRepository;
 import com.twogether.backend.department.domain.Department;
+import com.twogether.backend.gathering.repository.GatheringMemberRepository;
 import com.twogether.backend.department.repository.DepartmentRepository;
 import com.twogether.backend.global.exception.BusinessException;
 import com.twogether.backend.global.exception.ErrorCode;
@@ -35,18 +37,24 @@ public class UserService {
     private final DepartmentRepository departmentRepository;
     private final AvailabilityRepository availabilityRepository;
     private final UserTagRepository userTagRepository;
+    private final UserBookmarkRepository userBookmarkRepository;
+    private final GatheringMemberRepository gatheringMemberRepository;
     private final TagService tagService;
     public UserService(
             UserRepository userRepository,
             DepartmentRepository departmentRepository,
             AvailabilityRepository availabilityRepository,
             UserTagRepository userTagRepository,
+            UserBookmarkRepository userBookmarkRepository,
+            GatheringMemberRepository gatheringMemberRepository,
             TagService tagService
     ) {
         this.userRepository = userRepository;
         this.departmentRepository = departmentRepository;
         this.availabilityRepository = availabilityRepository;
         this.userTagRepository = userTagRepository;
+        this.userBookmarkRepository = userBookmarkRepository;
+        this.gatheringMemberRepository = gatheringMemberRepository;
         this.tagService = tagService;
     }
 
@@ -345,7 +353,8 @@ public class UserService {
      * 관심사/스킬 태그를 함께 조회합니다.
      */
     public UserProfileResponse getUserProfile(
-            Long userId
+            Long userId,
+            String authUserId
     ) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() ->
@@ -377,6 +386,15 @@ public class UserService {
         UserTagsResponse tags =
                 tagService.getUserTags(userId);
 
+        boolean bookmarked = false;
+        if (authUserId != null) {
+            bookmarked = userRepository.findByAuthUserId(authUserId)
+                    .map(me -> userBookmarkRepository.existsByBookmarkerIdAndBookmarkedUserId(me.getId(), userId))
+                    .orElse(false);
+        }
+
+        Long participatingGatheringsCount = gatheringMemberRepository.countByUserId(userId);
+
         return new UserProfileResponse(
                 user.getId(),
                 user.getNickname(),
@@ -388,7 +406,9 @@ public class UserService {
                 user.getIntroduction(),
                 user.getProfileImageUrl(),
                 tags.hobbyTags(),
-                tags.skillTags()
+                tags.skillTags(),
+                participatingGatheringsCount,
+                bookmarked
         );
     }
 }

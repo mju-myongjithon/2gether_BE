@@ -67,6 +67,12 @@ public record UserProfileResponse(
         List<HobbyTagResponse> hobbyTags,
 
         @Schema(description = "스킬 태그 목록")
-        List<SkillTagResponse> skillTags
+        List<SkillTagResponse> skillTags,
+
+        @Schema(description = "참여 중인 모임 개수", example = "5")
+        Long participatingGatheringsCount,
+
+        @Schema(description = "내가 이 사용자를 북마크했는지 여부", example = "false")
+        boolean bookmarked
 ) {
 }

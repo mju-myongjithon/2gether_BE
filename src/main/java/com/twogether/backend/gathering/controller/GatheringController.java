@@ -10,6 +10,8 @@ import com.twogether.backend.gathering.dto.response.GatheringDetailResponse;
 import com.twogether.backend.gathering.dto.response.GatheringSummaryResponse;
 import com.twogether.backend.gathering.dto.response.GatheringUpdateResponse;
 import com.twogether.backend.gathering.service.GatheringService;
+import com.twogether.backend.bookmark.dto.response.BookmarkStateResponse;
+import com.twogether.backend.bookmark.service.BookmarkService;
 import com.twogether.backend.global.response.ApiResponse;
 import com.twogether.backend.global.response.PageResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,6 +24,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -41,11 +44,14 @@ import java.util.List;
 public class GatheringController {
 
     private final GatheringService gatheringService;
+        private final BookmarkService bookmarkService;
 
     public GatheringController(
-            GatheringService gatheringService
+                        GatheringService gatheringService,
+                        BookmarkService bookmarkService
     ) {
         this.gatheringService = gatheringService;
+                this.bookmarkService = bookmarkService;
     }
 
     @Operation(
@@ -224,5 +230,27 @@ public class GatheringController {
         return ResponseEntity.ok(
                 ApiResponse.success("모임이 완료되었습니다.", response)
         );
+    }
+
+    @Operation(summary = "모임 북마크 토글", description = "특정 모임을 북마크하거나 북마크를 해제합니다.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @PostMapping("/{gatheringId}/bookmark")
+    public ResponseEntity<ApiResponse<BookmarkStateResponse>> toggleGatheringBookmark(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long gatheringId
+    ) {
+        BookmarkStateResponse response = bookmarkService.toggleGatheringBookmark(jwt.getSubject(), gatheringId);
+        return ResponseEntity.ok(ApiResponse.success("모임 북마크를 변경했습니다.", response));
+    }
+
+    @Operation(summary = "모임 북마크 해제", description = "특정 모임의 북마크를 해제합니다.")
+    @SecurityRequirement(name = "Bearer Authentication")
+    @DeleteMapping("/{gatheringId}/bookmark")
+    public ResponseEntity<ApiResponse<BookmarkStateResponse>> removeGatheringBookmark(
+            @AuthenticationPrincipal Jwt jwt,
+            @PathVariable Long gatheringId
+    ) {
+        BookmarkStateResponse response = bookmarkService.toggleGatheringBookmark(jwt.getSubject(), gatheringId);
+        return ResponseEntity.ok(ApiResponse.success("모임 북마크를 해제했습니다.", response));
     }
 }
