@@ -202,6 +202,24 @@ public enum ErrorCode {
             "활성화된 공지가 없습니다."
     ),
 
+    INVALID_QUICK_CODE(
+            HttpStatus.BAD_REQUEST,
+            "INVALID_QUICK_CODE",
+            "유효하지 않은 안심 커넥트 코드입니다."
+    ),
+
+    EXPIRED_QUICK_CODE(
+            HttpStatus.BAD_REQUEST,
+            "EXPIRED_QUICK_CODE",
+            "만료된 안심 커넥트 코드입니다."
+    ),
+
+    ALREADY_USED_QUICK_CODE(
+            HttpStatus.CONFLICT,
+            "ALREADY_USED_QUICK_CODE",
+            "이미 사용된 안심 커넥트 코드입니다."
+    ),
+
     INTERNAL_SERVER_ERROR(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "INTERNAL_SERVER_ERROR",
