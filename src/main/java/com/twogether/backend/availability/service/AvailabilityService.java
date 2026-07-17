@@ -112,4 +112,29 @@ public class AvailabilityService {
             );
         }
     }
+
+    public List<AvailabilityResponse> getUserAvailabilities(
+            Long userId
+    ) {
+        if (!userRepository.existsById(userId)) {
+            throw new BusinessException(
+                    ErrorCode.USER_NOT_FOUND
+            );
+        }
+
+        return availabilityRepository
+                .findAllByUserId(userId)
+                .stream()
+                .sorted(
+                        Comparator
+                                .comparing(
+                                        Availability::getDayOfWeek
+                                )
+                                .thenComparing(
+                                        Availability::getStartTime
+                                )
+                )
+                .map(AvailabilityResponse::from)
+                .toList();
+    }
 }
