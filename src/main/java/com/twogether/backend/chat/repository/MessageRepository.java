@@ -1,8 +1,10 @@
 package com.twogether.backend.chat.repository;
 
 import com.twogether.backend.chat.domain.Message;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -23,5 +25,22 @@ public interface MessageRepository
     long countByChatRoomIdAndIdGreaterThan(
             Long chatRoomId,
             Long messageId
+    );
+
+    /*
+     * 커서 페이징(첫 페이지): (chat_room_id, id) 키셋 역순.
+     */
+    List<Message> findByChatRoomIdOrderByIdDesc(
+            Long chatRoomId,
+            Pageable pageable
+    );
+
+    /*
+     * 커서 페이징(다음 페이지): cursor(id)보다 과거 메시지를 역순으로.
+     */
+    List<Message> findByChatRoomIdAndIdLessThanOrderByIdDesc(
+            Long chatRoomId,
+            Long id,
+            Pageable pageable
     );
 }

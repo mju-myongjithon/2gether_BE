@@ -1,47 +1,41 @@
 package com.twogether.backend.chat.controller;
 
 import com.twogether.backend.chat.dto.request.ChatMessageSendRequest;
-import com.twogether.backend.chat.dto.response.ChatMessageResponse;
+import com.twogether.backend.chat.service.ChatMessageService;
+import com.twogether.backend.global.exception.BusinessException;
+import com.twogether.backend.global.exception.ErrorCode;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Controller;
 
-import java.time.OffsetDateTime;
+import java.security.Principal;
 
 /**
- * 채팅 실시간 메시지 발행/브로드캐스트 처리.
+ * 채팅 실시간 메시지 수신 처리.
  *
- * 클라이언트가 /pub/chat/rooms/{roomId}/send 로 메시지를 발행하면,
- * 서버가 /sub/chat/rooms/{roomId} 구독자에게 브로드캐스트합니다.
- *
- * 현재 명세 단계에서는 실제 저장 없이 수신 페이로드를 그대로 브로드캐스트합니다.
- * 발신자(senderId)는 추후 STOMP 세션의 인증 정보에서 추출합니다.
+ * 클라이언트가 /pub/chat/rooms/{roomId}/send 로 발행하면 서버가 메시지를 저장하고,
+ * /sub/chat/rooms/{roomId} 구독자에게 브로드캐스트한다(브로드캐스트는 서비스가 수행).
+ * 발신자는 CONNECT 시 인증된 STOMP 세션 Principal(=auth_user_id)에서 추출한다.
  */
 @Controller
 public class ChatStompController {
 
-    private final SimpMessagingTemplate messagingTemplate;
+    private final ChatMessageService chatMessageService;
 
-    public ChatStompController(SimpMessagingTemplate messagingTemplate) {
-        this.messagingTemplate = messagingTemplate;
+    public ChatStompController(ChatMessageService chatMessageService) {
+        this.chatMessageService = chatMessageService;
     }
 
     @MessageMapping("/chat/rooms/{roomId}/send")
     public void sendMessage(
             @DestinationVariable Long roomId,
-            ChatMessageSendRequest request
+            @Payload ChatMessageSendRequest request,
+            Principal principal
     ) {
-        ChatMessageResponse response = new ChatMessageResponse(
-                107L,
-                roomId,
-                1L,
-                "인준",
-                request.type(),
-                request.content(),
-                OffsetDateTime.now()
-        );
-
-        messagingTemplate.convertAndSend("/sub/chat/rooms/" + roomId, response);
+        if (principal == null) {
+            throw new BusinessException(ErrorCode.FORBIDDEN);
+        }
+        chatMessageService.send(principal.getName(), roomId, request);
     }
 }
