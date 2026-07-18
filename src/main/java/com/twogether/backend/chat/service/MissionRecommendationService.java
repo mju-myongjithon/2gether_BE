@@ -23,7 +23,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.LinkedHashSet;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.stream.IntStream;
 
 @Service
@@ -82,9 +85,7 @@ public class MissionRecommendationService {
         List<RecommendedMission> recommended = recommendationClient.recommend(new MissionRecommendationContext(
                 chatRoomId, gatheringId, gathering.getTitle(), gathering.getContent(), gathering.getCategory(),
                 gatheringTags, interests));
-        if (recommended == null || recommended.isEmpty() || recommended.size() > 3) {
-            throw new BusinessException(ErrorCode.MISSION_RECOMMENDATION_FAILED);
-        }
+        validateRecommendations(recommended);
 
         List<RecommendedMissionResponse> missions = IntStream.range(0, recommended.size())
                 .mapToObj(i -> toResponse(i, recommended.get(i)))
@@ -99,11 +100,23 @@ public class MissionRecommendationService {
     }
 
     private RecommendedMissionResponse toResponse(int index, RecommendedMission mission) {
-        if (mission == null || mission.title() == null || mission.content() == null || mission.difficulty() == null) {
-            throw new BusinessException(ErrorCode.MISSION_RECOMMENDATION_FAILED);
-        }
         return new RecommendedMissionResponse(
                 "mission-" + (index + 1), mission.title(), mission.content(), mission.difficulty().name());
+    }
+
+    private void validateRecommendations(List<RecommendedMission> recommended) {
+        if (recommended == null || recommended.isEmpty() || recommended.size() > 3) {
+            throw new BusinessException(ErrorCode.MISSION_RECOMMENDATION_FAILED);
+        }
+        Set<String> titles = new HashSet<>();
+        for (RecommendedMission mission : recommended) {
+            if (mission == null || mission.title() == null || mission.content() == null || mission.difficulty() == null
+                    || mission.title().isBlank() || mission.content().isBlank()
+                    || mission.title().length() > 80 || mission.content().length() > 500
+                    || !titles.add(mission.title().trim().toLowerCase(Locale.ROOT))) {
+                throw new BusinessException(ErrorCode.MISSION_RECOMMENDATION_FAILED);
+            }
+        }
     }
 
     private void verifyParticipant(Long chatRoomId, Long userId) {

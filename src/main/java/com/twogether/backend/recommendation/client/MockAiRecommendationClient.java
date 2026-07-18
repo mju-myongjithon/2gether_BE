@@ -5,11 +5,13 @@ import com.twogether.backend.recommendation.dto.request.AiGatheringRecommendatio
 import com.twogether.backend.recommendation.dto.response.AiRecommendationResponse;
 import com.twogether.backend.recommendation.dto.response.AiRecommendedCandidate;
 import org.springframework.stereotype.Component;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 
 import java.util.Comparator;
 import java.util.List;
 
 @Component
+@ConditionalOnExpression("'${app.ai.member-recommendation.mode:mock}' == 'mock' or '${app.ai.member-recommendation.mode:mock}' == 'demo'")
 public class MockAiRecommendationClient implements AiRecommendationClient {
 
     @Override

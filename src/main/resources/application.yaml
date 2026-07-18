@@ -40,3 +40,33 @@ spring:
           writetimeout: 5000
 server:
   port: 8080
+
+app:
+  ai:
+    chat-recommendation:
+      topic-mode: ${AI_TOPIC_RECOMMENDATION_MODE:mock}
+      mission-mode: ${AI_MISSION_RECOMMENDATION_MODE:mock}
+      api-key: ${GEMINI_API_KEY:}
+      model: ${GEMINI_MODEL:gemini-3.5-flash}
+      connect-timeout: ${GEMINI_CONNECT_TIMEOUT:3s}
+      read-timeout: ${GEMINI_READ_TIMEOUT:15s}
+    member-recommendation:
+      mode: ${AI_MEMBER_RECOMMENDATION_MODE:mock}
+      api-key: ${GEMINI_API_KEY:}
+      model: ${GEMINI_MODEL:gemini-3.5-flash}
+      connect-timeout: ${GEMINI_CONNECT_TIMEOUT:3s}
+      read-timeout: ${GEMINI_READ_TIMEOUT:15s}
+    verification:
+      mode: ${AI_VERIFICATION_MODE:mock}
+      api-key: ${GEMINI_API_KEY:}
+      model: ${GEMINI_MODEL:gemini-3.5-flash}
+      connect-timeout: ${GEMINI_CONNECT_TIMEOUT:3s}
+      read-timeout: ${GEMINI_READ_TIMEOUT:15s}
+      max-image-size: ${AI_VERIFICATION_MAX_IMAGE_SIZE:5242880}
+      allowed-image-domains: ${AI_VERIFICATION_ALLOWED_IMAGE_DOMAINS:}
+    content-recommendation:
+      mode: ${AI_CONTENT_RECOMMENDATION_MODE:mock}
+      api-key: ${GEMINI_API_KEY:}
+      model: ${GEMINI_MODEL:gemini-3.5-flash}
+      connect-timeout: ${GEMINI_CONNECT_TIMEOUT:3s}
+      read-timeout: ${GEMINI_READ_TIMEOUT:15s}

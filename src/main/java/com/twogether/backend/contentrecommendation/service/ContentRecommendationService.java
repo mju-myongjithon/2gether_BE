@@ -42,14 +42,14 @@ public class ContentRecommendationService {
                 .map(userTag -> userTag.getTag().getName()).distinct().toList();
         List<RecommendedContent> result = recommendationClient.recommend(
                 new ContentRecommendationContext(user.getId(), interests, null, limit));
-        validate(result, limit);
+        validate(result, limit, interests);
         List<RecommendedContentResponse> responses = IntStream.range(0, result.size())
                 .mapToObj(index -> toResponse(index, result.get(index))).toList();
         return new ContentRecommendationResponse(responses);
     }
 
-    private void validate(List<RecommendedContent> result, int limit) {
-        if (result == null || result.isEmpty() || result.size() > limit) {
+    private void validate(List<RecommendedContent> result, int limit, List<String> interests) {
+        if (result == null || result.size() > limit) {
             throw new BusinessException(ErrorCode.CONTENT_RECOMMENDATION_FAILED);
         }
         Set<String> urls = new HashSet<>();
@@ -57,6 +57,11 @@ public class ContentRecommendationService {
             if (content == null || content.title() == null || content.title().isBlank()
                     || content.description() == null || content.description().isBlank()
                     || content.contentType() == null || content.matchedTags() == null) {
+                throw new BusinessException(ErrorCode.CONTENT_RECOMMENDATION_FAILED);
+            }
+            if (content.title().length() > 120 || content.description().length() > 500
+                    || content.matchedTags().stream().anyMatch(tag -> tag == null || interests.stream()
+                    .noneMatch(interest -> interest.equalsIgnoreCase(tag)))) {
                 throw new BusinessException(ErrorCode.CONTENT_RECOMMENDATION_FAILED);
             }
             if (!RecommendationUrlValidator.isSafe(content.url()) || !urls.add(content.url())) {

@@ -1,7 +1,7 @@
 package com.twogether.backend.contentrecommendation.client;
 
 import com.twogether.backend.contentrecommendation.domain.ContentType;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Component;
 
 import java.util.Comparator;
@@ -10,7 +10,7 @@ import java.util.Locale;
 import java.util.Set;
 
 @Component
-@ConditionalOnProperty(name = "app.ai.content-recommendation.mode", havingValue = "mock", matchIfMissing = true)
+@ConditionalOnExpression("'${app.ai.content-recommendation.mode:mock}' == 'mock' or '${app.ai.content-recommendation.mode:mock}' == 'demo'")
 public class MockAiContentRecommendationClient implements AiContentRecommendationClient {
 
     private static final List<Candidate> CANDIDATES = List.of(

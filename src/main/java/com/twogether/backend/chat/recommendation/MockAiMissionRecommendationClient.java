@@ -1,12 +1,14 @@
 package com.twogether.backend.chat.recommendation;
 
 import com.twogether.backend.gathering.domain.GatheringCategory;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
 
 @Component
+@ConditionalOnExpression("'${app.ai.chat-recommendation.mission-mode:mock}' == 'mock' or '${app.ai.chat-recommendation.mission-mode:mock}' == 'demo'")
 public class MockAiMissionRecommendationClient implements AiMissionRecommendationClient {
 
     @Override

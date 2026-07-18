@@ -67,12 +67,12 @@ class MissionRecommendationServiceTest {
         when(memberRepository.findAllByChatRoomIdAndLeftAtIsNull(1L)).thenReturn(List.of());
         when(client.recommend(org.mockito.ArgumentMatchers.any())).thenReturn(List.of(
                 new RecommendedMission("목표 공유", "목표를 하나씩 공유해보세요.", MissionDifficulty.EASY),
-                new RecommendedMission("역할 정하기", "역할을 하나씩 정해보세요.", MissionDifficulty.NORMAL)));
+                new RecommendedMission("역할 정하기", "역할을 하나씩 정해보세요.", MissionDifficulty.MEDIUM)));
 
         var result = service.recommend("subject", 1L);
 
         assertThat(result.missions()).extracting("missionId").containsExactly("mission-1", "mission-2");
-        assertThat(result.missions()).extracting("difficulty").containsExactly("EASY", "NORMAL");
+        assertThat(result.missions()).extracting("difficulty").containsExactly("EASY", "MEDIUM");
         ArgumentCaptor<MissionRecommendationContext> context = ArgumentCaptor.forClass(MissionRecommendationContext.class);
         verify(client).recommend(context.capture());
         assertThat(context.getValue().gatheringTitle()).isEqualTo("알고리즘 스터디");

@@ -190,6 +190,17 @@ public enum ErrorCode {
             "AI 활동 인증 판정 결과가 올바르지 않습니다."
     ),
 
+    GEMINI_VERIFICATION_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE, "GEMINI_VERIFICATION_NOT_CONFIGURED", "Gemini 활동 인증 설정이 누락되었습니다."),
+    VERIFICATION_IMAGE_URL_INVALID(HttpStatus.BAD_REQUEST, "VERIFICATION_IMAGE_URL_INVALID", "활동 인증 이미지 URL이 올바르지 않습니다."),
+    VERIFICATION_IMAGE_DOWNLOAD_FAILED(HttpStatus.BAD_GATEWAY, "VERIFICATION_IMAGE_DOWNLOAD_FAILED", "활동 인증 이미지를 다운로드하지 못했습니다."),
+    VERIFICATION_IMAGE_DOMAIN_NOT_ALLOWED(HttpStatus.BAD_REQUEST, "VERIFICATION_IMAGE_DOMAIN_NOT_ALLOWED", "허용되지 않은 활동 인증 이미지 도메인입니다."),
+    VERIFICATION_IMAGE_INVALID_MIME_TYPE(HttpStatus.BAD_REQUEST, "VERIFICATION_IMAGE_INVALID_MIME_TYPE", "지원하지 않거나 올바르지 않은 이미지 형식입니다."),
+    VERIFICATION_IMAGE_TOO_LARGE(HttpStatus.BAD_REQUEST, "VERIFICATION_IMAGE_TOO_LARGE", "활동 인증 이미지 용량이 제한을 초과했습니다."),
+    GEMINI_VERIFICATION_CALL_FAILED(HttpStatus.BAD_GATEWAY, "GEMINI_VERIFICATION_CALL_FAILED", "Gemini 활동 인증 호출에 실패했습니다."),
+    GEMINI_VERIFICATION_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT, "GEMINI_VERIFICATION_TIMEOUT", "Gemini 활동 인증 호출 시간이 초과되었습니다."),
+    GEMINI_VERIFICATION_RESPONSE_PARSE_FAILED(HttpStatus.BAD_GATEWAY, "GEMINI_VERIFICATION_RESPONSE_PARSE_FAILED", "Gemini 활동 인증 응답을 해석하지 못했습니다."),
+    INVALID_GEMINI_VERIFICATION_RESULT(HttpStatus.BAD_GATEWAY, "INVALID_GEMINI_VERIFICATION_RESULT", "Gemini 활동 인증 결과가 올바르지 않습니다."),
+
     GATHERING_NOT_RECRUITING(
             HttpStatus.CONFLICT,
             "GATHERING_NOT_RECRUITING",
@@ -285,6 +296,36 @@ public enum ErrorCode {
             "INVALID_RECOMMENDATION_COUNT",
             "추천 인원은 1명 이상이며 후보 사용자 수보다 많을 수 없습니다."
     ),
+
+    GEMINI_RECOMMENDATION_NOT_CONFIGURED(
+            HttpStatus.SERVICE_UNAVAILABLE,
+            "GEMINI_RECOMMENDATION_NOT_CONFIGURED",
+            "Gemini 팀원 추천 설정이 누락되었습니다."
+    ),
+
+    GEMINI_RECOMMENDATION_CALL_FAILED(
+            HttpStatus.BAD_GATEWAY,
+            "GEMINI_RECOMMENDATION_CALL_FAILED",
+            "Gemini 팀원 추천 호출에 실패했습니다."
+    ),
+
+    GEMINI_RECOMMENDATION_TIMEOUT(
+            HttpStatus.GATEWAY_TIMEOUT,
+            "GEMINI_RECOMMENDATION_TIMEOUT",
+            "Gemini 팀원 추천 호출 시간이 초과되었습니다."
+    ),
+
+    GEMINI_RECOMMENDATION_RESPONSE_PARSE_FAILED(
+            HttpStatus.BAD_GATEWAY,
+            "GEMINI_RECOMMENDATION_RESPONSE_PARSE_FAILED",
+            "Gemini 팀원 추천 응답을 해석하지 못했습니다."
+    ),
+
+    INVALID_GEMINI_RECOMMENDATION_RESULT(
+            HttpStatus.BAD_GATEWAY,
+            "INVALID_GEMINI_RECOMMENDATION_RESULT",
+            "Gemini 팀원 추천 결과가 올바르지 않습니다."
+    ),
   
     CHAT_ROOM_NOT_FOUND(
             HttpStatus.NOT_FOUND,
@@ -322,6 +363,42 @@ public enum ErrorCode {
             "모임 미션 추천 결과를 생성하지 못했습니다."
     ),
 
+    GEMINI_CHAT_RECOMMENDATION_NOT_CONFIGURED(
+            HttpStatus.SERVICE_UNAVAILABLE,
+            "GEMINI_CHAT_RECOMMENDATION_NOT_CONFIGURED",
+            "Gemini 채팅 추천 설정이 누락되었습니다."
+    ),
+
+    GEMINI_CHAT_RECOMMENDATION_CALL_FAILED(
+            HttpStatus.BAD_GATEWAY,
+            "GEMINI_CHAT_RECOMMENDATION_CALL_FAILED",
+            "Gemini 채팅 추천 호출에 실패했습니다."
+    ),
+
+    GEMINI_CHAT_RECOMMENDATION_TIMEOUT(
+            HttpStatus.GATEWAY_TIMEOUT,
+            "GEMINI_CHAT_RECOMMENDATION_TIMEOUT",
+            "Gemini 채팅 추천 호출 시간이 초과되었습니다."
+    ),
+
+    GEMINI_CHAT_RECOMMENDATION_RESPONSE_PARSE_FAILED(
+            HttpStatus.BAD_GATEWAY,
+            "GEMINI_CHAT_RECOMMENDATION_RESPONSE_PARSE_FAILED",
+            "Gemini 채팅 추천 응답을 해석하지 못했습니다."
+    ),
+
+    INVALID_GEMINI_TOPIC_RECOMMENDATION_RESULT(
+            HttpStatus.BAD_GATEWAY,
+            "INVALID_GEMINI_TOPIC_RECOMMENDATION_RESULT",
+            "Gemini 대화 주제 추천 결과가 올바르지 않습니다."
+    ),
+
+    INVALID_GEMINI_MISSION_RECOMMENDATION_RESULT(
+            HttpStatus.BAD_GATEWAY,
+            "INVALID_GEMINI_MISSION_RECOMMENDATION_RESULT",
+            "Gemini 모임 미션 추천 결과가 올바르지 않습니다."
+    ),
+
     CONTENT_RECOMMENDATION_FAILED(
             HttpStatus.INTERNAL_SERVER_ERROR,
             "CONTENT_RECOMMENDATION_FAILED",
@@ -339,6 +416,17 @@ public enum ErrorCode {
             "AI_CLIENT_NOT_CONFIGURED",
             "웹 검색 AI Client가 설정되지 않았습니다."
     ),
+
+    GEMINI_CONTENT_RECOMMENDATION_NOT_CONFIGURED(HttpStatus.SERVICE_UNAVAILABLE,
+            "GEMINI_CONTENT_RECOMMENDATION_NOT_CONFIGURED", "Gemini 콘텐츠 추천 설정이 누락되었습니다."),
+    GEMINI_CONTENT_RECOMMENDATION_CALL_FAILED(HttpStatus.BAD_GATEWAY,
+            "GEMINI_CONTENT_RECOMMENDATION_CALL_FAILED", "Gemini 콘텐츠 추천 호출에 실패했습니다."),
+    GEMINI_CONTENT_RECOMMENDATION_TIMEOUT(HttpStatus.GATEWAY_TIMEOUT,
+            "GEMINI_CONTENT_RECOMMENDATION_TIMEOUT", "Gemini 콘텐츠 추천 호출 시간이 초과되었습니다."),
+    GEMINI_CONTENT_RECOMMENDATION_RESPONSE_PARSE_FAILED(HttpStatus.BAD_GATEWAY,
+            "GEMINI_CONTENT_RECOMMENDATION_RESPONSE_PARSE_FAILED", "Gemini 콘텐츠 추천 응답을 해석하지 못했습니다."),
+    INVALID_GEMINI_CONTENT_RECOMMENDATION_RESULT(HttpStatus.BAD_GATEWAY,
+            "INVALID_GEMINI_CONTENT_RECOMMENDATION_RESULT", "Gemini 콘텐츠 추천 결과가 올바르지 않습니다."),
 
     CHAT_NOTICE_NOT_FOUND(
             HttpStatus.NOT_FOUND,

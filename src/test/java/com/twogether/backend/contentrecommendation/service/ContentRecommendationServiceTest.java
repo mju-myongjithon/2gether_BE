@@ -85,12 +85,12 @@ class ContentRecommendationServiceTest {
     }
 
     @Test
-    void null과_빈_결과와_limit_초과를_거부한다() {
+    void null과_limit_초과를_거부하고_빈_검색_결과는_정상_반환한다() {
         prepareUser(List.of());
         when(client.recommend(any())).thenReturn(null);
         assertError(() -> service.recommend("auth-id", 1), ErrorCode.CONTENT_RECOMMENDATION_FAILED);
         when(client.recommend(any())).thenReturn(List.of());
-        assertError(() -> service.recommend("auth-id", 1), ErrorCode.CONTENT_RECOMMENDATION_FAILED);
+        assertThat(service.recommend("auth-id", 1).recommendations()).isEmpty();
         when(client.recommend(any())).thenReturn(List.of(
                 content("https://spring.io", ContentType.BLOG, List.of()),
                 content("https://github.com", ContentType.ARTICLE, List.of())));
