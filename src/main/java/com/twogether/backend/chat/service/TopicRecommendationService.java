@@ -23,7 +23,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.LinkedHashSet;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 @Service
 @Transactional(readOnly = true)
@@ -78,9 +81,7 @@ public class TopicRecommendationService {
         List<RecommendedTopic> recommended = recommendationClient.recommend(new TopicRecommendationContext(
                 chatRoomId, gatheringId, gathering.getTitle(), gathering.getContent(), gathering.getCategory(),
                 gatheringTags, interests));
-        if (recommended == null || recommended.isEmpty() || recommended.size() > 3) {
-            throw new BusinessException(ErrorCode.AI_RECOMMENDATION_FAILED);
-        }
+        validateRecommendations(recommended);
         List<RecommendedTopicResponse> topics = java.util.stream.IntStream.range(0, recommended.size())
                 .mapToObj(i -> new RecommendedTopicResponse("topic-" + (i + 1), recommended.get(i).title(), recommended.get(i).content()))
                 .toList();
@@ -95,6 +96,21 @@ public class TopicRecommendationService {
     private User findUser(String authUserId) {
         return userRepository.findByAuthUserId(authUserId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+    }
+
+    private void validateRecommendations(List<RecommendedTopic> recommended) {
+        if (recommended == null || recommended.isEmpty() || recommended.size() > 3) {
+            throw new BusinessException(ErrorCode.AI_RECOMMENDATION_FAILED);
+        }
+        Set<String> titles = new HashSet<>();
+        for (RecommendedTopic topic : recommended) {
+            if (topic == null || topic.title() == null || topic.content() == null
+                    || topic.title().isBlank() || topic.content().isBlank()
+                    || topic.title().length() > 80 || topic.content().length() > 500
+                    || !titles.add(topic.title().trim().toLowerCase(Locale.ROOT))) {
+                throw new BusinessException(ErrorCode.AI_RECOMMENDATION_FAILED);
+            }
+        }
     }
 
     private ChatRoom findRoom(Long chatRoomId) {

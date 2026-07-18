@@ -36,13 +36,8 @@ public class GatheringRecommendationController {
     @Operation(
             summary = "AI 팀원 추천",
             description = """
-                    모임 정보와 후보 사용자 목록을 기반으로
-                    AI 팀원 추천 결과를 반환합니다.
-
-                    현재는 실제 AI 연동 전 단계이므로
-                    태그 일치 개수를 기준으로 Mock 추천 결과를 생성합니다.
-
-                    추후 백엔드에서 모임과 후보 정보를 직접 조회하도록 변경할 예정입니다.
+                    백엔드가 DB에서 모임 정보와 최대 20명의 후보를 조회하고
+                    설정된 AI 추천 방식(Mock 또는 Gemini)으로 추천 결과를 반환합니다.
                     """
     )
     @SecurityRequirement(name = "Bearer Authentication")
